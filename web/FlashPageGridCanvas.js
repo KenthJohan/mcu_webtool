@@ -14,14 +14,15 @@ class FlashPageGridCanvas {
         // Grid configuration
         this.COLS = config.cols || 64;
         this.ROWS = config.rows || 32;
-        this.CELL_SIZE = config.cellSize || 30;
+        this.CELL_SIZE = config.cellSize || 20;
         this.LINE_WIDTH = config.lineWidth || 1;
         this.PAGE_BASE_ADDRESS = config.pageBaseAddress || 0x08003000;
         this.API_REQPATH_SELECT = config.apiPath || 'api/select.php';
         
+        
         // Canvas dimensions
-        this.canvas.width = this.COLS * this.CELL_SIZE + this.LINE_WIDTH;
-        this.canvas.height = this.ROWS * this.CELL_SIZE + this.LINE_WIDTH;
+        this.canvas.width = (this.COLS * this.CELL_SIZE + this.LINE_WIDTH);
+        this.canvas.height = (this.ROWS * this.CELL_SIZE + this.LINE_WIDTH);
         
         // State
         this.parameters = [];
@@ -143,6 +144,26 @@ class FlashPageGridCanvas {
                 this.ctx.lineWidth = this.LINE_WIDTH;
                 this.ctx.strokeRect(x, y, this.CELL_SIZE, this.CELL_SIZE);
             }
+        }
+        
+        // Draw red border around hovered parameter group
+        if (this.hoveredParameter) {
+            const param = this.hoveredParameter;
+            const totalSize = param.size * param.count;
+            const startOffset = param.offset;
+            const endOffset = param.offset + totalSize - 1;
+            
+            const startCell = this.offsetToCell(startOffset);
+            const endCell = this.offsetToCell(endOffset);
+            
+            const x = startCell.col * this.CELL_SIZE;
+            const y = startCell.row * this.CELL_SIZE;
+            const width = (endCell.col - startCell.col + 1) * this.CELL_SIZE;
+            const height = (endCell.row - startCell.row + 1) * this.CELL_SIZE;
+            
+            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.lineWidth = 3;
+            this.ctx.strokeRect(x, y, width, height);
         }
     }
     
