@@ -22,6 +22,20 @@ CREATE INDEX IF NOT EXISTS idx_address ON mcu_parameters(address);
 -- Create index on name for faster searches
 CREATE INDEX IF NOT EXISTS idx_name ON mcu_parameters(name);
 
+-- Insert common MCU parameters
+INSERT OR IGNORE INTO mcu_parameters (name, address, size, count, fk_type, fk_quantity, fk_unit, description) VALUES
+('GPIOA_MODER', 0x40020000, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port mode register'),
+('GPIOA_OTYPER', 0x40020004, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port output type register'),
+('GPIOA_OSPEEDR', 0x40020008, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port output speed register'),
+('GPIOA_PUPDR', 0x4002000C, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port pull-up/pull-down register'),
+('GPIOA_IDR', 0x40020010, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port input data register'),
+('GPIOA_ODR', 0x40020014, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port output data register'),
+('GPIOA_BSRR', 0x40020018, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port bit set/reset register'),
+('GPIOA_LCKR', 0x4002001C, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port configuration lock register'),
+('GPIOA_AFRL', 0x40020020, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO alternate function low register'),
+('GPIOA_AFRH', 0x40020024, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO alternate function high register');
+
+
 -- Table for storing data types
 CREATE TABLE IF NOT EXISTS types (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
