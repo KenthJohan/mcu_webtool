@@ -1,0 +1,46 @@
+[15-Feb-2026 18:02:50 UTC] PHP Warning:  require_once(/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:02:50 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php' (include_path='.:/usr/share/php') in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php:2
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:02:50 UTC] PHP Warning:  require_once(/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:02:50 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php' (include_path='.:/usr/share/php') in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php:2
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:02:50 UTC] PHP Warning:  require_once(/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:02:50 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php' (include_path='.:/usr/share/php') in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php:2
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:02:50 UTC] PHP Warning:  require_once(/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:02:50 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php' (include_path='.:/usr/share/php') in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php:2
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:03:02 UTC] PHP Warning:  require_once(/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:03:02 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php' (include_path='.:/usr/share/php') in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php:2
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:03:02 UTC] PHP Warning:  require_once(/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:03:02 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php' (include_path='.:/usr/share/php') in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php:2
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:03:02 UTC] PHP Warning:  require_once(/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:03:02 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php' (include_path='.:/usr/share/php') in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php:2
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:03:02 UTC] PHP Warning:  require_once(/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php): Failed to open stream: No such file or directory in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:03:02 UTC] PHP Fatal error:  Uncaught Error: Failed opening required '/home/johan/Documents/projects_web/mcu_webtool/web/api/../vendor/autoload.php' (include_path='.:/usr/share/php') in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php:2
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/query.php on line 2
+[15-Feb-2026 18:30:33 UTC] PHP Fatal error:  Uncaught TypeError: Saturio\DuckDB\Type\Converter\TypeConverter::getDuckDBValue(): Argument #1 ($value) must be of type Saturio\DuckDB\Type\Date|Saturio\DuckDB\Type\Time|Saturio\DuckDB\Type\Timestamp|Saturio\DuckDB\Type\Interval|Saturio\DuckDB\Type\Math\LongInteger|Saturio\DuckDB\Type\UUID|Saturio\DuckDB\Type\Blob|string|int|float|bool|null, DateTime given, called in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/PreparedStatement/PreparedStatement.php on line 66 and defined in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/GetDuckDBValue.php:33
+Stack trace:
+#0 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/PreparedStatement/PreparedStatement.php(66): Saturio\DuckDB\Type\Converter\TypeConverter->getDuckDBValue()
+#1 /home/johan/Documents/projects_web/mcu_webtool/web/api/delete.php(85): Saturio\DuckDB\PreparedStatement\PreparedStatement->bindParam()
+#2 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/GetDuckDBValue.php on line 33
