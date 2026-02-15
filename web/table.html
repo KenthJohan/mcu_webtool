@@ -84,7 +84,7 @@
             showLoading();
             
             try {
-                const response = await fetch(`api/query.php?table=${encodeURIComponent(tableName)}`);
+                const response = await fetch(`api/select.php?table=${encodeURIComponent(tableName)}`);
                 const data = await response.json();
                 
                 if (!data.success) {

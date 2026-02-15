@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Query Interface</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>SQL Query Interface</h1>
+        
+        <div class="info">
+            Execute custom SQL queries against the DuckDB database. Write your query below and click "Execute Query" to see the results.
+        </div>
+
+        <div id="messageArea"></div>
+
+        <form id="sqlForm">
+            <label for="sqlQuery">SQL Query:</label>
+            <textarea id="sqlQuery" name="sql" placeholder="Enter your SQL query here..."></textarea>
+            
+            <div class="button-group">
+                <button type="submit" class="btn-action">Execute Query</button>
+                <button type="button" class="btn-cancel" onclick="clearQuery()">Clear</button>
+            </div>
+        </form>
+
+        <div class="examples">
+            <h3>Example Queries (click to load):</h3>
+            <div class="example-query" onclick="loadExample('SELECT * FROM parameters LIMIT 10')">
+                SELECT * FROM parameters LIMIT 10
+            </div>
+            <div class="example-query" onclick="loadExample('SELECT COUNT(*) as total_rows FROM parameters')">
+                SELECT COUNT(*) as total_rows FROM parameters
+            </div>
+            <div class="example-query" onclick="loadExample('SELECT page, COUNT(*) as param_count FROM parameters GROUP BY page ORDER BY param_count DESC')">
+                SELECT page, COUNT(*) as param_count FROM parameters GROUP BY page ORDER BY param_count DESC
+            </div>
+            <div class="example-query" onclick="loadExample('SELECT * FROM parameters WHERE page = 1')">
+                SELECT * FROM parameters WHERE page = 1
+            </div>
+            <div class="example-query" onclick="loadExample('SELECT DISTINCT page FROM parameters ORDER BY page')">
+                SELECT DISTINCT page FROM parameters ORDER BY page
+            </div>
+        </div>
+
+        <div id="resultsSection" style="display: none;">
+            <div class="table-header">
+                <h2>Query Results</h2>
+                <div id="executionInfo"></div>
+            </div>
+            
+            <div class="table-wrapper">
+                <table class="sql-results">
+                    <thead id="tableHeader"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+            
+            <div class="record-count" id="recordCount"></div>
+        </div>
+    </div>
+
+    <script>
+        const sqlForm = document.getElementById('sqlForm');
+        const sqlQuery = document.getElementById('sqlQuery');
+        const messageArea = document.getElementById('messageArea');
+        const resultsSection = document.getElementById('resultsSection');
+        const tableHeader = document.getElementById('tableHeader');
+        const tableBody = document.getElementById('tableBody');
+        const recordCount = document.getElementById('recordCount');
+        const executionInfo = document.getElementById('executionInfo');
+
+        sqlForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const query = sqlQuery.value.trim();
+            if (!query) {
+                showMessage('Please enter a SQL query', 'error');
+                return;
+            }
+
+            try {
+                const formData = new FormData();
+                formData.append('sql', query);
+
+                const response = await fetch('api/sql.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('Query executed successfully!', 'success');
+                    displayResults(result.data, result.executionTime);
+                } else {
+                    showMessage('Error: ' + result.error, 'error');
+                    hideResults();
+                }
+            } catch (error) {
+                showMessage('Error executing query: ' + error.message, 'error');
+                hideResults();
+            }
+        });
+
+        function displayResults(data, executionTime) {
+            if (!data || data.length === 0) {
+                showMessage('Query executed successfully but returned no results', 'success');
+                hideResults();
+                return;
+            }
+
+            // Show results section
+            resultsSection.style.display = 'block';
+
+            // Display execution time
+            executionInfo.innerHTML = `<span style="color: #666;">Execution time: <strong>${executionTime} ms</strong></span>`;
+
+            // Get column names from first row
+            const columns = Object.keys(data[0]);
+
+            // Create table header
+            tableHeader.innerHTML = '<tr>' + 
+                columns.map(col => `<th>${escapeHtml(col)}</th>`).join('') + 
+                '</tr>';
+
+            // Create table body
+            tableBody.innerHTML = data.map(row => 
+                '<tr>' + 
+                columns.map(col => {
+                    const value = row[col];
+                    return `<td>${value === null ? '<span class="nullable-yes">NULL</span>' : escapeHtml(String(value))}</td>`;
+                }).join('') + 
+                '</tr>'
+            ).join('');
+
+            // Update record count
+            recordCount.textContent = `Total records: ${data.length}`;
+
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function hideResults() {
+            resultsSection.style.display = 'none';
+        }
+
+        function showMessage(message, type) {
+            messageArea.innerHTML = `<div class="message ${type}">${escapeHtml(message)}</div>`;
+            setTimeout(() => {
+                messageArea.innerHTML = '';
+            }, 5000);
+        }
+
+        function loadExample(query) {
+            sqlQuery.value = query;
+            sqlQuery.focus();
+        }
+
+        function clearQuery() {
+            sqlQuery.value = '';
+            hideResults();
+            messageArea.innerHTML = '';
+            sqlQuery.focus();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

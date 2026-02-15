@@ -44,3 +44,15 @@ Stack trace:
 #1 /home/johan/Documents/projects_web/mcu_webtool/web/api/delete.php(85): Saturio\DuckDB\PreparedStatement\PreparedStatement->bindParam()
 #2 {main}
   thrown in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/GetDuckDBValue.php on line 33
+[15-Feb-2026 18:51:55 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method Saturio\DuckDB\Result\ResultSet::fetchAll() in /home/johan/Documents/projects_web/mcu_webtool/web/api/sql.php:29
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/sql.php on line 29
+[15-Feb-2026 18:52:02 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method Saturio\DuckDB\Result\ResultSet::fetchAll() in /home/johan/Documents/projects_web/mcu_webtool/web/api/sql.php:29
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/sql.php on line 29
+[15-Feb-2026 18:52:16 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method Saturio\DuckDB\Result\ResultSet::fetchAll() in /home/johan/Documents/projects_web/mcu_webtool/web/api/sql.php:29
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/sql.php on line 29

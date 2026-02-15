@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MCU Flash Page Viewer (2kB)</title>
-    <link rel="stylesheet" href="parinspect.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <h1>MCU Flash Page Viewer (2kB - 64x32 Grid)</h1>
@@ -91,9 +91,10 @@
         // Grid configuration
         const COLS = 64;
         const ROWS = 32;
-        const CELL_SIZE = 12;
+        const CELL_SIZE = 24;
         const LINE_WIDTH = 1;
         const PAGE_BASE_ADDRESS = 0x0800F800;
+        const API_REQPATH_SELECT = 'api/select.php';
         
         // Canvas dimensions
         canvas.width = COLS * CELL_SIZE + LINE_WIDTH;
@@ -323,7 +324,7 @@
         
         // Load parameters from database
         function loadParameters() {
-            fetch('api/query.php?table=mcu_parameters')
+            fetch(`${API_REQPATH_SELECT}?table=mcu_parameters`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -342,9 +343,9 @@
                     
                     // Fetch additional data (types, quantities, units) for each parameter
                     Promise.all([
-                        fetch('api/query.php?table=types').then(r => r.json()),
-                        fetch('api/query.php?table=quantities').then(r => r.json()),
-                        fetch('api/query.php?table=units').then(r => r.json())
+                        fetch(`${API_REQPATH_SELECT}?table=types`).then(r => r.json()),
+                        fetch(`${API_REQPATH_SELECT}?table=quantities`).then(r => r.json()),
+                        fetch(`${API_REQPATH_SELECT}?table=units`).then(r => r.json())
                     ]).then(([typesData, quantitiesData, unitsData]) => {
                         const types = typesData.success ? typesData.data : [];
                         const quantities = quantitiesData.success ? quantitiesData.data : [];
@@ -439,7 +440,7 @@
         // Load dropdown data
         function loadDropdowns() {
             // Load types
-            fetch('api/query.php?table=types')
+            fetch(`${API_REQPATH_SELECT}?table=types`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -456,7 +457,7 @@
             .catch(error => console.error('Error loading types:', error));
             
             // Load quantities
-            fetch('api/query.php?table=quantities')
+            fetch(`${API_REQPATH_SELECT}?table=quantities`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -472,7 +473,7 @@
             .catch(error => console.error('Error loading quantities:', error));
             
             // Load units
-            fetch('api/query.php?table=units')
+            fetch(`${API_REQPATH_SELECT}?table=units`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
