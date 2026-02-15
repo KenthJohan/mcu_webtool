@@ -45,6 +45,20 @@ try {
     // Escape the file path for shell command
     $escaped_file = escapeshellarg($parquet_file);
     
+    // Get schema information using DESCRIBE
+    $schema_query = "DESCRIBE SELECT * FROM read_parquet($escaped_file)";
+    $schema_command = $duckdb_path . " -json -c " . escapeshellarg($schema_query) . " 2>&1";
+    $schema_output = shell_exec($schema_command);
+    
+    if (empty($schema_output)) {
+        throw new Exception("DuckDB returned no schema output");
+    }
+    
+    $schema = json_decode($schema_output, true);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+        throw new Exception("Schema JSON decode error: " . json_last_error_msg());
+    }
+    
     // Query the parquet file using DuckDB CLI and get JSON output
     $query = "SELECT * FROM read_parquet($escaped_file) LIMIT 1000"; // Limit to 1000 rows for performance
     $command = $duckdb_path . " -json -c " . escapeshellarg($query) . " 2>&1";
@@ -87,65 +101,7 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parquet Table Viewer</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            border-bottom: 2px solid #4CAF50;
-            padding-bottom: 10px;
-        }
-        .info {
-            background-color: #e8f5e9;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            color: #2e7d32;
-        }
-        .table-wrapper {
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th {
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px;
-            text-align: left;
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-        }
-        td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #ddd;
-        }
-        tr:hover {
-            background-color: #f5f5f5;
-        }
-        tr:nth-child(even) {
-            background-color: #fafafa;
-        }
-        .record-count {
-            font-weight: bold;
-            color: #666;
-            margin-top: 10px;
-        }
-    </style>
+    <link rel="stylesheet" href="table.css">
 </head>
 <body>
     <div class="container">
@@ -159,6 +115,30 @@ try {
             <strong>File:</strong> <?php echo htmlspecialchars(basename($parquet_file)); ?><br>
             <strong>Path:</strong> <?php echo htmlspecialchars($parquet_file); ?>
         </div>
+        
+        <?php if (!empty($schema)): ?>
+            <h2>📋 Table Schema</h2>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Column Name</th>
+                            <th>Data Type</th>
+                            <th>Nullable</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($schema as $col): ?>
+                            <tr>
+                                <td><strong><?php echo htmlspecialchars($col['column_name']); ?></strong></td>
+                                <td><?php echo htmlspecialchars($col['column_type']); ?></td>
+                                <td><?php echo htmlspecialchars($col['null']); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
         
         <?php if (empty($rows)): ?>
             <p>No data found in the parquet file.</p>
