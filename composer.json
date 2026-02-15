@@ -1,0 +1,10 @@
+{
+    "require": {
+        "satur.io/duckdb-auto": "^2.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "satur.io/duckdb-auto": true
+        }
+    }
+}

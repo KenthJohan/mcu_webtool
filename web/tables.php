@@ -2,58 +2,17 @@
 // Database connection
 $db_path = '../db/test1.duckdb';
 
-/**
- * Execute a DuckDB query and return the result as JSON
- */
-function executeDuckDBQuery($db_path, $query) {
-    $escaped_query = escapeshellarg($query);
-    $escaped_path = escapeshellarg($db_path);
-    $command = "duckdb $escaped_path -json -c $escaped_query 2>&1";
-    
-    $output = shell_exec($command);
-    if ($output === null) {
-        throw new Exception("Failed to execute DuckDB command");
-    }
-    
-    // Check for errors
-    if (strpos($output, 'Error:') !== false) {
-        throw new Exception($output);
-    }
-    
-    $result = json_decode($output, true);
-    if (json_last_error() !== JSON_ERROR_NONE) {
-        throw new Exception("Failed to parse DuckDB output: " . json_last_error_msg());
-    }
-    
-    return $result;
-}
+require_once 'misc_duckdb.php';
 
 // Handle table deletion
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_table'])) {
     $table_to_delete = $_POST['delete_table'];
     
-    try {
-        // Validate table name (alphanumeric and underscore only)
-        if (!preg_match('/^[a-zA-Z0-9_]+$/', $table_to_delete)) {
-            throw new Exception("Invalid table name");
-        }
-        
-        // Get all tables to verify the table exists
-        $tables_result = executeDuckDBQuery($db_path, "SHOW TABLES");
-        $tables = array_column($tables_result, 'name');
-        
-        if (in_array($table_to_delete, $tables)) {
-            executeDuckDBQuery($db_path, "DROP TABLE $table_to_delete");
-            $message = "Table '$table_to_delete' has been deleted successfully.";
-            $message_type = "success";
-        } else {
-            $message = "Invalid table name.";
-            $message_type = "error";
-        }
-    } catch (Exception $e) {
-        $message = "Error deleting table: " . $e->getMessage();
-        $message_type = "error";
-    }
+    // Call the delete function
+    $result = deleteTable($db_path, $table_to_delete);
+    
+    $message = $result['message'];
+    $message_type = $result['success'] ? 'success' : 'error';
     
     // Redirect to prevent resubmission
     header("Location: " . $_SERVER['PHP_SELF'] . "?msg=" . urlencode($message) . "&type=" . $message_type);
@@ -74,13 +33,6 @@ try {
     $tables_result = executeDuckDBQuery($db_path, "SHOW TABLES");
     $tables = array_column($tables_result, 'name');
     
-    // Get schema for each table
-    $table_schemas = [];
-    foreach ($tables as $table) {
-        $schema = executeDuckDBQuery($db_path, "DESCRIBE $table");
-        $table_schemas[$table] = $schema;
-    }
-    
 } catch (Exception $e) {
     die("Error: " . $e->getMessage());
 }
@@ -90,12 +42,12 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Database Schema Viewer</title>
+    <title>Database Tables List</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>📊 Database Schema Viewer</h1>
+        <h1>📊 Database Tables</h1>
         
         <div class="info">
             Database: <strong><?php echo htmlspecialchars($db_path); ?></strong>
@@ -112,65 +64,37 @@ try {
                 <div class="stat-number"><?php echo count($tables); ?></div>
                 <div class="stat-label">Total Tables</div>
             </div>
-            <div class="stat-box">
-                <div class="stat-number">
-                    <?php 
-                    $total_columns = 0;
-                    foreach ($table_schemas as $schema) {
-                        $total_columns += count($schema);
-                    }
-                    echo $total_columns;
-                    ?>
-                </div>
-                <div class="stat-label">Total Columns</div>
-            </div>
         </div>
         
-        <?php foreach ($table_schemas as $table_name => $schema): ?>
-            <div class="schema-table">
-                <div class="table-header">
-                    <h2>🗂️ <?php echo htmlspecialchars($table_name); ?></h2>
-                    <button class="delete-btn" onclick="confirmDelete('<?php echo htmlspecialchars($table_name); ?>')">
-                        🗑️ Delete Table
-                    </button>
-                </div>
-                
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Column Name</th>
-                                <th>Type</th>
-                                <th>Nullable</th>
-                                <th>Key</th>
-                                <th>Default</th>
-                                <th>Extra</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($schema as $column): ?>
-                                <tr>
-                                    <td><strong><?php echo htmlspecialchars($column['column_name']); ?></strong></td>
-                                    <td><code><?php echo htmlspecialchars($column['column_type']); ?></code></td>
-                                    <td class="<?php echo $column['null'] === 'YES' ? 'nullable-yes' : 'nullable-no'; ?>">
-                                        <?php echo htmlspecialchars($column['null']); ?>
-                                    </td>
-                                    <td>
-                                        <?php if ($column['key'] && $column['key'] !== 'NULL'): ?>
-                                            <span class="key-badge key-<?php echo strtolower($column['key']); ?>">
-                                                <?php echo htmlspecialchars($column['key']); ?>
-                                            </span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td><?php echo $column['default'] && $column['default'] !== 'NULL' ? htmlspecialchars($column['default']) : '-'; ?></td>
-                                    <td><?php echo $column['extra'] && $column['extra'] !== 'NULL' ? htmlspecialchars($column['extra']) : '-'; ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        <?php endforeach; ?>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Table Name</th>
+                        <th style="text-align: center;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($tables as $index => $table_name): ?>
+                        <tr>
+                            <td><?php echo $index + 1; ?></td>
+                            <td><strong><?php echo htmlspecialchars($table_name); ?></strong></td>
+                            <td style="text-align: center;">
+                                <div style="display: flex; gap: 10px; justify-content: center;">
+                                    <a href="schema.php?table=<?php echo urlencode($table_name); ?>" class="view-btn" style="text-decoration: none;">
+                                        📋 View Schema
+                                    </a>
+                                    <button class="delete-btn" onclick="confirmDelete('<?php echo htmlspecialchars($table_name); ?>')">
+                                        🗑️ Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
         
         <?php if (empty($tables)): ?>
             <div class="info" style="background-color: #fff3cd; color: #856404;">

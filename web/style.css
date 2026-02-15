@@ -47,9 +47,18 @@ th {
     top: 0;
 }
 
+th.alt-style {
+    background: #f8f9fa;
+    color: #333;
+}
+
 td {
     padding: 10px 12px;
     border-bottom: 1px solid #ddd;
+}
+
+td.bordered {
+    border: 1px solid #ddd;
 }
 
 tr:hover {
@@ -232,4 +241,114 @@ tr:nth-child(even) {
 
 .btn-cancel:hover {
     background-color: #5a6268;
+}
+.view-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background-color 0.3s;
+    display: inline-block;
+}
+
+.view-btn:hover {
+    background-color: #0056b3;
+}
+
+.view-btn:active {
+    transform: scale(0.98);
+}
+
+.btn-action {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    text-decoration: none;
+    display: inline-block;
+    transition: background-color 0.3s;
+}
+
+.btn-action:hover {
+    background-color: #218838;
+}
+
+.btn-action:active {
+    transform: scale(0.98);
+}
+
+/* SQL Query Interface */
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #555;
+}
+
+textarea {
+    width: 100%;
+    min-height: 150px;
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    resize: vertical;
+    transition: border-color 0.3s;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+.button-group {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.examples {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+.examples h3 {
+    color: #555;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.example-query {
+    background: #f8f9fa;
+    padding: 8px 12px;
+    margin: 5px 0;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.example-query:hover {
+    background: #e9ecef;
+}
+
+/* SQL results table styling */
+.sql-results th,
+.sql-results td {
+    border: 1px solid #ddd;
+}
+
+.sql-results {
+    font-size: 13px;
 }

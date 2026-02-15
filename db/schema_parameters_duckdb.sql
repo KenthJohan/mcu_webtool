@@ -270,3 +270,19 @@ INSERT OR IGNORE INTO mcu_parameters (name, address, size, count, fk_type, fk_qu
 ('GPIOA_LCKR', '0x4002001C'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port configuration lock register'),
 ('GPIOA_AFRL', '0x40020020'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO alternate function low register'),
 ('GPIOA_AFRH', '0x40020024'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO alternate function high register');
+
+
+-- Insert example application parameters
+INSERT OR IGNORE INTO mcu_parameters (name, address, size, count, fk_type, fk_quantity, fk_unit, description) VALUES
+('LED1_STATE', '0x20000000'::INT, 1, 1, (SELECT id FROM types WHERE type_name='bool'), (SELECT id FROM quantities WHERE quantity_name='flag'), (SELECT id FROM units WHERE unit_symbol=''), 'State of LED1 (on/off)'),
+('BUTTON1_STATE', '0x20000001'::INT, 1, 1, (SELECT id FROM types WHERE type_name='bool'), (SELECT id FROM quantities WHERE quantity_name='flag'), (SELECT id FROM units WHERE unit_symbol=''), 'State of BUTTON1 (pressed/released)'),
+('SENSOR1_VALUE', '0x20000004'::INT, 4, 1, (SELECT id FROM types WHERE type_name='float'), (SELECT id FROM quantities WHERE quantity_name='data_size'), (SELECT id FROM units WHERE unit_symbol=''), 'Value read from SENSOR1'),
+('MOTOR1_SPEED', '0x20000008'::INT, 4, 1, (SELECT id FROM types WHERE type_name='int16_t'), (SELECT id FROM quantities WHERE quantity_name='velocity'), (SELECT id FROM units WHERE unit_symbol='rpm'), 'Speed of MOTOR1 in RPM'),
+('TEMP_SENSOR_VALUE', '0x2000000C'::INT, 4, 1, (SELECT id FROM types WHERE type_name='float'), (SELECT id FROM quantities WHERE quantity_name='temperature'), (SELECT id FROM units WHERE unit_symbol='°C'), 'Temperature sensor reading in Celsius');
+
+
+-- Insert example application parameters config stored in flash addresses
+INSERT OR IGNORE INTO mcu_parameters (name, address, size, count, fk_type, fk_quantity, fk_unit, description) VALUES
+('CONFIG_PARAM1', '0x0800FF00'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='count'), (SELECT id FROM units WHERE unit_symbol=''), 'Configuration parameter 1 stored in flash'),
+('CONFIG_PARAM2', '0x0800FF04'::INT, 4, 1, (SELECT id FROM types WHERE type_name='float'), (SELECT id FROM quantities WHERE quantity_name='data_size'), (SELECT id FROM units WHERE unit_symbol=''), 'Configuration parameter 2 stored in flash'),
+('CONFIG_PARAM3', '0x0800FF08'::INT, 4, 1, (SELECT id FROM types WHERE type_name='int16_t'), (SELECT id FROM quantities WHERE quantity_name='velocity'), (SELECT id FROM units WHERE unit_symbol='rpm'), 'Configuration parameter 3 stored in flash');

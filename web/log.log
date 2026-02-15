@@ -1,0 +1,91 @@
+[15-Feb-2026 14:07:40 UTC] PHP Warning:  Undefined variable $types in /home/johan/Documents/projects_web/mcu_webtool/web/par_page_viewer.php on line 256
+[15-Feb-2026 14:07:40 UTC] PHP Warning:  foreach() argument must be of type array|object, null given in /home/johan/Documents/projects_web/mcu_webtool/web/par_page_viewer.php on line 256
+[15-Feb-2026 14:07:40 UTC] PHP Warning:  Undefined variable $quantities in /home/johan/Documents/projects_web/mcu_webtool/web/par_page_viewer.php on line 268
+[15-Feb-2026 14:07:40 UTC] PHP Warning:  foreach() argument must be of type array|object, null given in /home/johan/Documents/projects_web/mcu_webtool/web/par_page_viewer.php on line 268
+[15-Feb-2026 14:07:40 UTC] PHP Warning:  Undefined variable $units in /home/johan/Documents/projects_web/mcu_webtool/web/par_page_viewer.php on line 280
+[15-Feb-2026 14:07:40 UTC] PHP Warning:  foreach() argument must be of type array|object, null given in /home/johan/Documents/projects_web/mcu_webtool/web/par_page_viewer.php on line 280
+[15-Feb-2026 14:24:11 UTC] PHP Fatal error:  Uncaught Error: Class "Satur\DuckDB\DuckDB" not found in /home/johan/Documents/projects_web/mcu_webtool/web/sql.php:7
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/sql.php on line 7
+[15-Feb-2026 14:25:00 UTC] PHP Fatal error:  Uncaught Error: Call to undefined method Saturio\DuckDB\Result\ResultSet::fetchAllAssociative() in /home/johan/Documents/projects_web/mcu_webtool/web/sql.php:273
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/sql.php on line 273
+[15-Feb-2026 14:26:29 UTC] PHP Fatal error:  Uncaught Saturio\DuckDB\Exception\BigNumbersNotSupportedException: You are querying a type that use integers > PHP_INT_MAX. Extension bcmath is not available. in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php:310
+Stack trace:
+#0 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php(201): Saturio\DuckDB\Type\Converter\TypeConverter->checkMath()
+#1 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(159): Saturio\DuckDB\Type\Converter\TypeConverter->getBigIntFromDuckDBBigInt()
+#2 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(81): Saturio\DuckDB\Result\Vector->getTypedData()
+#3 [internal function]: Saturio\DuckDB\Result\Vector->getDataGenerator()
+#4 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/ResultSet.php(64): Generator->current()
+#5 [internal function]: Saturio\DuckDB\Result\ResultSet->rows()
+#6 /home/johan/Documents/projects_web/mcu_webtool/web/sql.php(273): iterator_to_array()
+#7 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php on line 310
+[15-Feb-2026 17:45:34 UTC] PHP Fatal error:  Uncaught Saturio\DuckDB\Exception\BigNumbersNotSupportedException: You are querying a type that use integers > PHP_INT_MAX. Extension bcmath is not available. in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php:310
+Stack trace:
+#0 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php(201): Saturio\DuckDB\Type\Converter\TypeConverter->checkMath()
+#1 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(159): Saturio\DuckDB\Type\Converter\TypeConverter->getBigIntFromDuckDBBigInt()
+#2 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(81): Saturio\DuckDB\Result\Vector->getTypedData()
+#3 [internal function]: Saturio\DuckDB\Result\Vector->getDataGenerator()
+#4 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/ResultSet.php(64): Generator->current()
+#5 [internal function]: Saturio\DuckDB\Result\ResultSet->rows()
+#6 /home/johan/Documents/projects_web/mcu_webtool/web/sql.php(69): iterator_to_array()
+#7 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php on line 310
+[15-Feb-2026 17:45:54 UTC] PHP Fatal error:  Uncaught Saturio\DuckDB\Exception\BigNumbersNotSupportedException: You are querying a type that use integers > PHP_INT_MAX. Extension bcmath is not available. in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php:310
+Stack trace:
+#0 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php(201): Saturio\DuckDB\Type\Converter\TypeConverter->checkMath()
+#1 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(159): Saturio\DuckDB\Type\Converter\TypeConverter->getBigIntFromDuckDBBigInt()
+#2 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(81): Saturio\DuckDB\Result\Vector->getTypedData()
+#3 [internal function]: Saturio\DuckDB\Result\Vector->getDataGenerator()
+#4 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/ResultSet.php(64): Generator->current()
+#5 [internal function]: Saturio\DuckDB\Result\ResultSet->rows()
+#6 /home/johan/Documents/projects_web/mcu_webtool/web/sql.php(69): iterator_to_array()
+#7 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php on line 310
+[15-Feb-2026 17:47:58 UTC] PHP Fatal error:  Uncaught Saturio\DuckDB\Exception\BigNumbersNotSupportedException: You are querying a type that use integers > PHP_INT_MAX. Extension bcmath is not available. in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php:310
+Stack trace:
+#0 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php(201): Saturio\DuckDB\Type\Converter\TypeConverter->checkMath()
+#1 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(159): Saturio\DuckDB\Type\Converter\TypeConverter->getBigIntFromDuckDBBigInt()
+#2 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(81): Saturio\DuckDB\Result\Vector->getTypedData()
+#3 [internal function]: Saturio\DuckDB\Result\Vector->getDataGenerator()
+#4 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/ResultSet.php(64): Generator->current()
+#5 [internal function]: Saturio\DuckDB\Result\ResultSet->rows()
+#6 /home/johan/Documents/projects_web/mcu_webtool/web/sql.php(69): iterator_to_array()
+#7 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php on line 310
+[15-Feb-2026 17:48:09 UTC] PHP Fatal error:  Uncaught Saturio\DuckDB\Exception\BigNumbersNotSupportedException: You are querying a type that use integers > PHP_INT_MAX. Extension bcmath is not available. in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php:310
+Stack trace:
+#0 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php(201): Saturio\DuckDB\Type\Converter\TypeConverter->checkMath()
+#1 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(159): Saturio\DuckDB\Type\Converter\TypeConverter->getBigIntFromDuckDBBigInt()
+#2 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(81): Saturio\DuckDB\Result\Vector->getTypedData()
+#3 [internal function]: Saturio\DuckDB\Result\Vector->getDataGenerator()
+#4 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/ResultSet.php(64): Generator->current()
+#5 [internal function]: Saturio\DuckDB\Result\ResultSet->rows()
+#6 /home/johan/Documents/projects_web/mcu_webtool/web/sql.php(69): iterator_to_array()
+#7 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php on line 310
+[15-Feb-2026 17:50:52 UTC] PHP Fatal error:  Uncaught Saturio\DuckDB\Exception\BigNumbersNotSupportedException: You are querying a type that use integers > PHP_INT_MAX. Extension bcmath is not available. in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php:310
+Stack trace:
+#0 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php(201): Saturio\DuckDB\Type\Converter\TypeConverter->checkMath()
+#1 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(159): Saturio\DuckDB\Type\Converter\TypeConverter->getBigIntFromDuckDBBigInt()
+#2 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(81): Saturio\DuckDB\Result\Vector->getTypedData()
+#3 [internal function]: Saturio\DuckDB\Result\Vector->getDataGenerator()
+#4 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/ResultSet.php(64): Generator->current()
+#5 [internal function]: Saturio\DuckDB\Result\ResultSet->rows()
+#6 /home/johan/Documents/projects_web/mcu_webtool/web/sql.php(69): iterator_to_array()
+#7 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php on line 310
+[15-Feb-2026 17:51:09 UTC] PHP Fatal error:  Uncaught Saturio\DuckDB\Exception\BigNumbersNotSupportedException: You are querying a type that use integers > PHP_INT_MAX. Extension bcmath is not available. in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php:310
+Stack trace:
+#0 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php(201): Saturio\DuckDB\Type\Converter\TypeConverter->checkMath()
+#1 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(159): Saturio\DuckDB\Type\Converter\TypeConverter->getBigIntFromDuckDBBigInt()
+#2 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/Vector.php(81): Saturio\DuckDB\Result\Vector->getTypedData()
+#3 [internal function]: Saturio\DuckDB\Result\Vector->getDataGenerator()
+#4 /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Result/ResultSet.php(64): Generator->current()
+#5 [internal function]: Saturio\DuckDB\Result\ResultSet->rows()
+#6 /home/johan/Documents/projects_web/mcu_webtool/web/sql.php(69): iterator_to_array()
+#7 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/vendor/satur.io/duckdb/src/Type/Converter/TypeConverter.php on line 310
