@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <h1>MCU Flash Page Viewer (2kB)</h1>
+    <h1>Vibing with MCU Flash Page Viewer (2kB)</h1>
 
     <div class="container">
 
@@ -32,6 +32,23 @@
                 </div>
                 <div style="font-size: 0.9em; color: #666;">
                     (Total: <span id="gridTotal">2048</span> cells | Powers of 2: 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048)
+                </div>
+            </div>
+            <div style="background-color: #e8f4f8; padding: 10px; margin: 10px 0; border-radius: 4px; display: flex; gap: 15px; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label for="alignmentGrid" style="font-weight: bold;">Alignment Grid:</label>
+                    <select id="alignmentGrid" style="padding: 5px;">
+                        <option value="0">Off</option>
+                        <option value="1">1 byte</option>
+                        <option value="2">2 bytes</option>
+                        <option value="4" selected>4 bytes</option>
+                        <option value="8">8 bytes</option>
+                        <option value="16">16 bytes</option>
+                        <option value="32">32 bytes</option>
+                    </select>
+                </div>
+                <div style="font-size: 0.9em; color: #666;">
+                    Shows alignment boundaries for data structure packing
                 </div>
             </div>
             <canvas id="gridCanvas"></canvas>

@@ -39,17 +39,19 @@ class FlashPageGridCanvas {
         // Grid configuration
         this.COLS = config.cols || 32;
         this.ROWS = config.rows || 64;
-        this.CELL_SIZE = config.cellSize || 25;
+        this.CELL_SIZE = config.cellSize || 20;
         this.LINE_WIDTH = config.lineWidth || 1;
         this.PAGE_BASE_ADDRESS = config.pageBaseAddress || 0x08003000;
         this.API_REQPATH_SELECT = config.apiPath || 'api/select.php';
+        this.LEFT_MARGIN = 100; // Space for row address labels
+        this.ALIGNMENT_GRID = 4; // Default alignment in bytes (0 = off)
 
         // Ensure grid dimensions multiply to PAGE_SIZE
         this.validateGridSize();
 
 
         // Canvas dimensions
-        this.canvas.width = (this.COLS * this.CELL_SIZE + this.LINE_WIDTH);
+        this.canvas.width = this.LEFT_MARGIN + (this.COLS * this.CELL_SIZE + this.LINE_WIDTH);
         this.canvas.height = (this.ROWS * this.CELL_SIZE + this.LINE_WIDTH);
 
         // State
@@ -83,6 +85,7 @@ class FlashPageGridCanvas {
         // Setup event listeners
         this.setupEventListeners();
         this.setupGridSizeControls();
+        this.setupAlignmentControl();
     }
 
     /**
@@ -104,7 +107,7 @@ class FlashPageGridCanvas {
         this.ROWS = newRows;
 
         // Update canvas dimensions
-        this.canvas.width = (this.COLS * this.CELL_SIZE + this.LINE_WIDTH);
+        this.canvas.width = this.LEFT_MARGIN + (this.COLS * this.CELL_SIZE + this.LINE_WIDTH);
         this.canvas.height = (this.ROWS * this.CELL_SIZE + this.LINE_WIDTH);
 
         // Update total display
@@ -115,6 +118,23 @@ class FlashPageGridCanvas {
 
         // Redraw with new dimensions
         this.drawGrid();
+    }
+
+    /**
+     * Setup alignment grid control
+     */
+    setupAlignmentControl() {
+        const alignmentSelect = document.getElementById('alignmentGrid');
+        if (alignmentSelect) {
+            // Set initial value
+            alignmentSelect.value = this.ALIGNMENT_GRID;
+
+            // Handle changes
+            alignmentSelect.addEventListener('change', (e) => {
+                this.ALIGNMENT_GRID = parseInt(e.target.value) || 0;
+                this.drawGrid();
+            });
+        }
     }
 
     /**
@@ -221,7 +241,7 @@ class FlashPageGridCanvas {
      */
     getCellFromMouse(event) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
+        const x = event.clientX - rect.left - this.LEFT_MARGIN;
         const y = event.clientY - rect.top;
 
         const col = Math.floor(x / this.CELL_SIZE);
@@ -256,17 +276,50 @@ class FlashPageGridCanvas {
         const startOffset = param.offset;
         const endOffset = param.offset + totalSize - 1;
 
-        const startCell = this.offsetToCell(startOffset);
-        const endCell = this.offsetToCell(endOffset);
-
-        const x = startCell.col * this.CELL_SIZE;
-        const y = startCell.row * this.CELL_SIZE;
-        const width = (endCell.col - startCell.col + 1) * this.CELL_SIZE;
-        const height = (endCell.row - startCell.row + 1) * this.CELL_SIZE;
-
         this.ctx.strokeStyle = color;
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(x, y, width, height);
+
+        // Draw border for each cell that's part of this parameter
+        for (let offset = startOffset; offset <= endOffset; offset++) {
+            const cell = this.offsetToCell(offset);
+            const x = this.LEFT_MARGIN + cell.col * this.CELL_SIZE;
+            const y = cell.row * this.CELL_SIZE;
+
+            // Check if adjacent cells are part of this parameter
+            const leftInParam = offset > startOffset && (offset - 1) >= startOffset;
+            const rightInParam = offset < endOffset && (offset + 1) <= endOffset;
+            const topInParam = offset >= this.COLS && (offset - this.COLS) >= startOffset && (offset - this.COLS) <= endOffset;
+            const bottomInParam = offset < (this.ROWS - 1) * this.COLS && (offset + this.COLS) >= startOffset && (offset + this.COLS) <= endOffset;
+
+            // Draw borders only on edges where adjacent cell is NOT in parameter
+            this.ctx.beginPath();
+            
+            if (!leftInParam) {
+                // Draw left border
+                this.ctx.moveTo(x, y);
+                this.ctx.lineTo(x, y + this.CELL_SIZE);
+            }
+            
+            if (!rightInParam) {
+                // Draw right border
+                this.ctx.moveTo(x + this.CELL_SIZE, y);
+                this.ctx.lineTo(x + this.CELL_SIZE, y + this.CELL_SIZE);
+            }
+            
+            if (!topInParam) {
+                // Draw top border
+                this.ctx.moveTo(x, y);
+                this.ctx.lineTo(x + this.CELL_SIZE, y);
+            }
+            
+            if (!bottomInParam) {
+                // Draw bottom border
+                this.ctx.moveTo(x, y + this.CELL_SIZE);
+                this.ctx.lineTo(x + this.CELL_SIZE, y + this.CELL_SIZE);
+            }
+            
+            this.ctx.stroke();
+        }
     }
 
     /**
@@ -275,10 +328,22 @@ class FlashPageGridCanvas {
     drawGrid() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+        // Draw row addresses on the left
+        this.ctx.fillStyle = '#000000';
+        this.ctx.font = '11px monospace';
+        this.ctx.textAlign = 'right';
+        this.ctx.textBaseline = 'middle';
+        
+        for (let row = 0; row < this.ROWS; row++) {
+            const rowAddress = this.PAGE_BASE_ADDRESS + (row * this.COLS);
+            const y = row * this.CELL_SIZE + this.CELL_SIZE / 2;
+            this.ctx.fillText('0x' + rowAddress.toString(16).toUpperCase().padStart(8, '0'), this.LEFT_MARGIN - 5, y);
+        }
+
         // Draw cells
         for (let row = 0; row < this.ROWS; row++) {
             for (let col = 0; col < this.COLS; col++) {
-                const x = col * this.CELL_SIZE;
+                const x = this.LEFT_MARGIN + col * this.CELL_SIZE;
                 const y = row * this.CELL_SIZE;
                 const offset = this.cellToOffset(row, col);
 
@@ -339,7 +404,7 @@ class FlashPageGridCanvas {
                 this.ctx.fillRect(x, y, this.CELL_SIZE, this.CELL_SIZE);
 
                 // Draw cell border
-                this.ctx.strokeStyle = '#9f9f9f';
+                this.ctx.strokeStyle = '#dbdbdb';
                 this.ctx.lineWidth = this.LINE_WIDTH;
                 this.ctx.strokeRect(x, y, this.CELL_SIZE, this.CELL_SIZE);
             }
@@ -356,7 +421,7 @@ class FlashPageGridCanvas {
             const centerCell = this.offsetToCell(centerOffset);
 
             // Calculate center coordinates
-            const centerX = (centerCell.col * this.CELL_SIZE) + (this.CELL_SIZE / 2);
+            const centerX = this.LEFT_MARGIN + (centerCell.col * this.CELL_SIZE) + (this.CELL_SIZE / 2);
             const centerY = (centerCell.row * this.CELL_SIZE) + (this.CELL_SIZE / 2);
 
             // Draw parameter ID text
@@ -378,6 +443,47 @@ class FlashPageGridCanvas {
             const param = this.hoveredParameter;
             this.drawParameterBorder(param, '#ff0000');
         }
+
+        // Draw alignment grid overlay
+        if (this.ALIGNMENT_GRID > 0) {
+            this.drawAlignmentGrid();
+        }
+    }
+
+    /**
+     * Draw alignment grid overlay
+     */
+    drawAlignmentGrid() {
+        this.ctx.strokeStyle = 'rgba(200, 0, 170, 0.5)';
+        this.ctx.lineWidth = 2;
+        this.ctx.setLineDash([5, 3]);
+
+        // Draw vertical alignment lines
+        for (let offset = 0; offset < this.PAGE_SIZE; offset += this.ALIGNMENT_GRID) {
+            // Skip if alignment is at column 0 (already has grid line)
+            if (offset % this.COLS === 0 && offset > 0) continue;
+
+            const cell = this.offsetToCell(offset);
+            const x = this.LEFT_MARGIN + cell.col * this.CELL_SIZE;
+            const y = cell.row * this.CELL_SIZE;
+
+            // Draw vertical line at alignment boundary
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, y);
+            this.ctx.lineTo(x, y + this.CELL_SIZE);
+            this.ctx.stroke();
+
+            // Draw horizontal continuation if we're at row start
+            if (cell.col === 0 && offset > 0) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.LEFT_MARGIN, y);
+                this.ctx.lineTo(this.LEFT_MARGIN + this.COLS * this.CELL_SIZE, y);
+                this.ctx.stroke();
+            }
+        }
+
+        // Reset line dash
+        this.ctx.setLineDash([]);
     }
 
     /**

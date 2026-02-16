@@ -13,21 +13,26 @@ CREATE TABLE IF NOT EXISTS types (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Insert common MCU data types
-INSERT OR IGNORE INTO types (type_name, size_bytes, description) VALUES
-('uint8_t', 1, 'Unsigned 8-bit integer'),
-('int8_t', 1, 'Signed 8-bit integer'),
-('uint16_t', 2, 'Unsigned 16-bit integer'),
-('int16_t', 2, 'Signed 16-bit integer'),
-('uint32_t', 4, 'Unsigned 32-bit integer'),
-('int32_t', 4, 'Signed 32-bit integer'),
-('uint64_t', 8, 'Unsigned 64-bit integer'),
-('int64_t', 8, 'Signed 64-bit integer'),
-('float', 4, '32-bit floating point'),
-('double', 8, '64-bit floating point'),
-('char', 1, 'Character type'),
-('bool', 1, 'Boolean type'),
-('byte', 1, 'Byte type');
+
+-- Insert or update common MCU data types with hardcoded IDs
+INSERT INTO types (id, type_name, size_bytes, description) VALUES
+(1, 'u8', 1, 'Unsigned 8-bit integer'),
+(2, 'i8', 1, 'Signed 8-bit integer'),
+(3, 'u16', 2, 'Unsigned 16-bit integer'),
+(4, 'i16', 2, 'Signed 16-bit integer'),
+(5, 'u32', 4, 'Unsigned 32-bit integer'),
+(6, 'i32', 4, 'Signed 32-bit integer'),
+(7, 'u64', 8, 'Unsigned 64-bit integer'),
+(8, 'i64', 8, 'Signed 64-bit integer'),
+(9, 'f32', 4, '32-bit floating point'),
+(10, 'f64', 8, '64-bit floating point'),
+(11, 'char', 1, 'Character type'),
+(12, 'bool', 1, 'Boolean type'),
+(13, 'byte', 1, 'Byte type')
+ON CONFLICT (id) DO UPDATE SET
+    type_name = EXCLUDED.type_name,
+    size_bytes = EXCLUDED.size_bytes,
+    description = EXCLUDED.description;
 
 -- Table for storing physical and computer science quantities
 CREATE TABLE IF NOT EXISTS quantities (
@@ -234,7 +239,7 @@ INSERT OR IGNORE INTO units (unit_symbol, unit_name, description) VALUES
 ('ppm', 'Parts per million', 'Ratio unit'),
 ('ppb', 'Parts per billion', 'Ratio unit');
 
--- Table for storing MCU flash parameters
+
 CREATE TABLE IF NOT EXISTS mcu_parameters (
     id INTEGER PRIMARY KEY DEFAULT nextval('seq_mcu_parameters_id'),
     name VARCHAR(100) NOT NULL,
@@ -258,36 +263,16 @@ CREATE INDEX IF NOT EXISTS idx_address ON mcu_parameters(address);
 -- Create index on name for faster searches
 CREATE INDEX IF NOT EXISTS idx_name ON mcu_parameters(name);
 
--- Insert common MCU parameters
-INSERT OR IGNORE INTO mcu_parameters (name, address, size, count, fk_type, fk_quantity, fk_unit, description) VALUES
-('GPIOA_MODER', '0x40020000'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port mode register'),
-('GPIOA_OTYPER', '0x40020004'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port output type register'),
-('GPIOA_OSPEEDR', '0x40020008'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port output speed register'),
-('GPIOA_PUPDR', '0x4002000C'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port pull-up/pull-down register'),
-('GPIOA_IDR', '0x40020010'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port input data register'),
-('GPIOA_ODR', '0x40020014'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port output data register'),
-('GPIOA_BSRR', '0x40020018'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port bit set/reset register'),
-('GPIOA_LCKR', '0x4002001C'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO port configuration lock register'),
-('GPIOA_AFRL', '0x40020020'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO alternate function low register'),
-('GPIOA_AFRH', '0x40020024'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='register'), (SELECT id FROM units WHERE unit_symbol=''), 'GPIO alternate function high register');
 
-
--- Insert example application parameters
-INSERT OR IGNORE INTO mcu_parameters (name, address, size, count, fk_type, fk_quantity, fk_unit, description) VALUES
-('LED1_STATE', '0x20000000'::INT, 1, 1, (SELECT id FROM types WHERE type_name='bool'), (SELECT id FROM quantities WHERE quantity_name='flag'), (SELECT id FROM units WHERE unit_symbol=''), 'State of LED1 (on/off)'),
-('BUTTON1_STATE', '0x20000001'::INT, 1, 1, (SELECT id FROM types WHERE type_name='bool'), (SELECT id FROM quantities WHERE quantity_name='flag'), (SELECT id FROM units WHERE unit_symbol=''), 'State of BUTTON1 (pressed/released)'),
-('SENSOR1_VALUE', '0x20000004'::INT, 4, 1, (SELECT id FROM types WHERE type_name='float'), (SELECT id FROM quantities WHERE quantity_name='data_size'), (SELECT id FROM units WHERE unit_symbol=''), 'Value read from SENSOR1'),
-('MOTOR1_SPEED', '0x20000008'::INT, 4, 1, (SELECT id FROM types WHERE type_name='int16_t'), (SELECT id FROM quantities WHERE quantity_name='velocity'), (SELECT id FROM units WHERE unit_symbol='rpm'), 'Speed of MOTOR1 in RPM'),
-('TEMP_SENSOR_VALUE', '0x2000000C'::INT, 4, 1, (SELECT id FROM types WHERE type_name='float'), (SELECT id FROM quantities WHERE quantity_name='temperature'), (SELECT id FROM units WHERE unit_symbol='°C'), 'Temperature sensor reading in Celsius');
-
-
+-- Delete any existing parameters that conflict with the new configuration parameters we want to insert
+DELETE FROM mcu_parameters WHERE name IN ('CONFIG_PARAM1', 'CONFIG_PARAM2', 'CONFIG_PARAM3', 'FLASH_PAGE_CRC32');
 -- Insert example application parameters config stored in flash addresses
 INSERT OR IGNORE INTO mcu_parameters (name, address, size, count, fk_type, fk_quantity, fk_unit, description) VALUES
-('CONFIG_PARAM1', '0x08003000'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='count'), (SELECT id FROM units WHERE unit_symbol=''), 'Configuration parameter 1 stored in flash'),
-('CONFIG_PARAM2', '0x08003004'::INT, 4, 1, (SELECT id FROM types WHERE type_name='float'), (SELECT id FROM quantities WHERE quantity_name='data_size'), (SELECT id FROM units WHERE unit_symbol=''), 'Configuration parameter 2 stored in flash'),
-('CONFIG_PARAM3', '0x08003008'::INT, 4, 1, (SELECT id FROM types WHERE type_name='int16_t'), (SELECT id FROM quantities WHERE quantity_name='velocity'), (SELECT id FROM units WHERE unit_symbol='rpm'), 'Configuration parameter 3 stored in flash');
+('CONFIG_PARAM1', '0x08003000'::INT, 4, 1, (SELECT id FROM types WHERE type_name='u32'), (SELECT id FROM quantities WHERE quantity_name='count'), (SELECT id FROM units WHERE unit_symbol=''), 'Configuration parameter 1 stored in flash'),
+('CONFIG_PARAM2', '0x08003004'::INT, 4, 1, (SELECT id FROM types WHERE type_name='f32'), (SELECT id FROM quantities WHERE quantity_name='data_size'), (SELECT id FROM units WHERE unit_symbol=''), 'Configuration parameter 2 stored in flash'),
+('CONFIG_PARAM3', '0x08003008'::INT, 4, 1, (SELECT id FROM types WHERE type_name='i16'), (SELECT id FROM quantities WHERE quantity_name='velocity'), (SELECT id FROM units WHERE unit_symbol='rpm'), 'Configuration parameter 3 stored in flash');
 
 --- Insert CRC32 checksum at the end of the 2kB flash page for integrity verification, the sum need 64bit space, but we can store it as uint32_t and calculate the checksum in a way that it fits in 32 bits (e.g. by using a specific polynomial and initial value)
 --- Base address of the page is 0x08003000, so the checksum will be stored at 0x080037FC, which is the last 4 bytes of the 2kB page (0x08003000 + 2048 - 4)
 INSERT OR IGNORE INTO mcu_parameters (name, address, size, count, fk_type, fk_quantity, fk_unit, description) VALUES
-('FLASH_PAGE_CRC32', '0x080037FC'::INT, 4, 1, (SELECT id FROM types WHERE type_name='uint32_t'), (SELECT id FROM quantities WHERE quantity_name='checksum'), (SELECT id FROM units WHERE unit_symbol=''), 'CRC32 checksum of the flash page for integrity verification');
+('FLASH_PAGE_CRC32', '0x080037FC'::INT, 4, 1, (SELECT id FROM types WHERE type_name='u32'), (SELECT id FROM quantities WHERE quantity_name='checksum'), (SELECT id FROM units WHERE unit_symbol=''), 'CRC32 checksum of the flash page for integrity verification');

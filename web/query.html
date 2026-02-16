@@ -149,9 +149,6 @@
 
         function showMessage(message, type) {
             messageArea.innerHTML = `<div class="message ${type}">${escapeHtml(message)}</div>`;
-            setTimeout(() => {
-                messageArea.innerHTML = '';
-            }, 5000);
         }
 
         function loadExample(query) {
