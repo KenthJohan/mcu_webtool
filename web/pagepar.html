@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <h1>MCU Flash Page Viewer (2kB - 64x32 Grid)</h1>
+    <h1>MCU Flash Page Viewer (2kB)</h1>
 
     <div class="container">
 
@@ -19,6 +19,21 @@
                 Size: 2048 bytes (2kB) |
                 Click on grid to view address
             </div>
+            <div style="background-color: #f5f5f5; padding: 10px; margin: 10px 0; border-radius: 4px; display: flex; gap: 20px; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label for="gridCols" style="font-weight: bold;">Columns:</label>
+                    <input type="number" id="gridCols" min="1" max="2048" style="width: 80px; padding: 5px;" 
+                           title="Use arrow keys to double/halve (powers of 2)" />
+                </div>
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <label for="gridRows" style="font-weight: bold;">Rows:</label>
+                    <input type="number" id="gridRows" min="1" max="2048" style="width: 80px; padding: 5px;" 
+                           title="Use arrow keys to double/halve (powers of 2)" />
+                </div>
+                <div style="font-size: 0.9em; color: #666;">
+                    (Total: <span id="gridTotal">2048</span> cells | Powers of 2: 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048)
+                </div>
+            </div>
             <canvas id="gridCanvas"></canvas>
             <div id="cellInfo">Click on grid to see address information</div>
         </div>
@@ -26,6 +41,19 @@
         <div class="right-panel">
             <h3>Parameters in this Page</h3>
             <div id="parameterList">Loading...</div>
+
+            <div id="unsavedChangesInfo" style="display: none; background-color: #fff3cd; border: 1px solid #ff9800; padding: 10px; margin: 10px 0; border-radius: 4px; color: #856404;">
+                <strong>⚠ Unsaved changes</strong>
+            </div>
+
+            <div style="margin: 10px 0;">
+                <button id="saveChangesBtn" type="button" class="primary" style="display: none; background-color: #4CAF50;">
+                    💾 Save All Changes
+                </button>
+                <button id="discardChangesBtn" type="button" class="danger" style="display: none;">
+                    🗑️ Discard Changes
+                </button>
+            </div>
 
 
         <h2>Add Parameter</h2>

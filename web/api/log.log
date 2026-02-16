@@ -56,3 +56,8 @@ Stack trace:
 Stack trace:
 #0 {main}
   thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/sql.php on line 29
+[16-Feb-2026 18:26:12 UTC] PHP Warning:  Undefined variable $db in /home/johan/Documents/projects_web/mcu_webtool/web/api/update_parameter_offset.php on line 38
+[16-Feb-2026 18:26:12 UTC] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in /home/johan/Documents/projects_web/mcu_webtool/web/api/update_parameter_offset.php:38
+Stack trace:
+#0 {main}
+  thrown in /home/johan/Documents/projects_web/mcu_webtool/web/api/update_parameter_offset.php on line 38

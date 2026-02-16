@@ -3,6 +3,28 @@
  * Displays parameters mapped to memory locations with interactive selection
  */
 class FlashPageGridCanvas {
+    /**
+     * Find the nearest power of 2 to a given value
+     * @param {number} value - The value to find nearest power of 2 to
+     * @param {number} max - Maximum allowed value (e.g., 2048)
+     * @returns {number} - The nearest power of 2
+     */
+    static findNearestPowerOf2(value, max = 2048) {
+        if (value <= 1) return 1;
+        if (value >= max) return max;
+        
+        // Find the power of 2 that is closest
+        const log = Math.log2(value);
+        const lower = Math.pow(2, Math.floor(log));
+        const upper = Math.pow(2, Math.ceil(log));
+        
+        // Return the closest one
+        const lowerDiff = Math.abs(value - lower);
+        const upperDiff = Math.abs(value - upper);
+        
+        return lowerDiff <= upperDiff ? lower : upper;
+    }
+
     constructor(canvasId, config = {}) {
         this.canvas = document.getElementById(canvasId);
         if (!this.canvas) {
@@ -11,13 +33,19 @@ class FlashPageGridCanvas {
         
         this.ctx = this.canvas.getContext('2d');
         
+        // Total page size constraint
+        this.PAGE_SIZE = 2048;
+        
         // Grid configuration
-        this.COLS = config.cols || 64;
-        this.ROWS = config.rows || 32;
-        this.CELL_SIZE = config.cellSize || 20;
+        this.COLS = config.cols || 32;
+        this.ROWS = config.rows || 64;
+        this.CELL_SIZE = config.cellSize || 25;
         this.LINE_WIDTH = config.lineWidth || 1;
         this.PAGE_BASE_ADDRESS = config.pageBaseAddress || 0x08003000;
         this.API_REQPATH_SELECT = config.apiPath || 'api/select.php';
+        
+        // Ensure grid dimensions multiply to PAGE_SIZE
+        this.validateGridSize();
         
         
         // Canvas dimensions
@@ -32,6 +60,15 @@ class FlashPageGridCanvas {
         this.isDragging = false;
         this.hoveredParameter = null;
         
+        // Parameter dragging state
+        this.isDraggingParameter = false;
+        this.draggedParameter = null;
+        this.draggedParameterOriginalOffset = null;
+        this.dragCurrentCell = null;
+        
+        // Track parameters with unsaved changes
+        this.modifiedParameters = new Map(); // paramId -> {originalOffset, originalAddress}
+        
         // Color palette for parameters
         this.PARAM_COLORS = [
             '#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF',
@@ -45,6 +82,129 @@ class FlashPageGridCanvas {
         
         // Setup event listeners
         this.setupEventListeners();
+        this.setupGridSizeControls();
+    }
+    
+    /**
+     * Validate and adjust grid size to ensure ROWS * COLS = PAGE_SIZE
+     */
+    validateGridSize() {
+        const total = this.ROWS * this.COLS;
+        if (total !== this.PAGE_SIZE) {
+            // Adjust rows to match page size
+            this.ROWS = this.PAGE_SIZE / this.COLS;
+        }
+    }
+    
+    /**
+     * Update grid dimensions and resize canvas
+     */
+    updateGridSize(newCols, newRows) {
+        this.COLS = newCols;
+        this.ROWS = newRows;
+        
+        // Update canvas dimensions
+        this.canvas.width = (this.COLS * this.CELL_SIZE + this.LINE_WIDTH);
+        this.canvas.height = (this.ROWS * this.CELL_SIZE + this.LINE_WIDTH);
+        
+        // Update total display
+        const totalDisplay = document.getElementById('gridTotal');
+        if (totalDisplay) {
+            totalDisplay.textContent = this.COLS * this.ROWS;
+        }
+        
+        // Redraw with new dimensions
+        this.drawGrid();
+    }
+    
+    /**
+     * Setup grid size control inputs
+     */
+    setupGridSizeControls() {
+        const colsInput = document.getElementById('gridCols');
+        const rowsInput = document.getElementById('gridRows');
+        
+        if (colsInput) {
+            colsInput.value = this.COLS;
+            
+            // Handle manual input
+            colsInput.addEventListener('change', (e) => {
+                let value = parseInt(e.target.value) || 32;
+                // Find nearest power of 2
+                const newCols = FlashPageGridCanvas.findNearestPowerOf2(value, this.PAGE_SIZE);
+                const newRows = this.PAGE_SIZE / newCols;
+                
+                // Update both inputs
+                colsInput.value = newCols;
+                if (rowsInput) rowsInput.value = newRows;
+                
+                // Update grid
+                this.updateGridSize(newCols, newRows);
+            });
+            
+            // Handle step up/down (double/halve)
+            colsInput.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const currentCols = parseInt(colsInput.value);
+                    let newCols;
+                    
+                    if (e.key === 'ArrowUp') {
+                        // Double (if not at max)
+                        newCols = Math.min(currentCols * 2, this.PAGE_SIZE);
+                    } else {
+                        // Halve (if not at min)
+                        newCols = Math.max(currentCols / 2, 1);
+                    }
+                    
+                    const newRows = this.PAGE_SIZE / newCols;
+                    colsInput.value = newCols;
+                    if (rowsInput) rowsInput.value = newRows;
+                    this.updateGridSize(newCols, newRows);
+                }
+            });
+        }
+        
+        if (rowsInput) {
+            rowsInput.value = this.ROWS;
+            
+            // Handle manual input
+            rowsInput.addEventListener('change', (e) => {
+                let value = parseInt(e.target.value) || 64;
+                // Find nearest power of 2
+                const newRows = FlashPageGridCanvas.findNearestPowerOf2(value, this.PAGE_SIZE);
+                const newCols = this.PAGE_SIZE / newRows;
+                
+                // Update both inputs
+                rowsInput.value = newRows;
+                if (colsInput) colsInput.value = newCols;
+                
+                // Update grid
+                this.updateGridSize(newCols, newRows);
+            });
+            
+            // Handle step up/down (double/halve)
+            rowsInput.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const currentRows = parseInt(rowsInput.value);
+                    let newRows;
+                    
+                    if (e.key === 'ArrowUp') {
+                        // Double (if not at max)
+                        newRows = Math.min(currentRows * 2, this.PAGE_SIZE);
+                    } else {
+                        // Halve (if not at min)
+                        newRows = Math.max(currentRows / 2, 1);
+                    }
+                    
+                    const newCols = this.PAGE_SIZE / newRows;
+                    rowsInput.value = newRows;
+                    if (colsInput) colsInput.value = newCols;
+                    this.updateGridSize(newCols, newRows);
+                }
+            });
+        }
     }
     
     /**
@@ -106,20 +266,30 @@ class FlashPageGridCanvas {
                 // Determine cell color
                 let fillColor = '#ffffff';
                 let isPartOfParam = false;
+                let overlappingParams = [];
                 
-                // Check if cell is part of a parameter
+                // Check if cell is part of a parameter (check ALL parameters for overlaps)
                 for (let i = 0; i < this.parameters.length; i++) {
                     const param = this.parameters[i];
                     const totalSize = param.size * param.count;
                     if (offset >= param.offset && offset < param.offset + totalSize) {
-                        fillColor = this.PARAM_COLORS[i % this.PARAM_COLORS.length];
+                        overlappingParams.push({ param, index: i });
                         isPartOfParam = true;
-                        
-                        // Highlight if hovered
-                        if (this.hoveredParameter && this.hoveredParameter.id === param.id) {
-                            fillColor = '#ffeb3b';
-                        }
-                        break;
+                    }
+                }
+                
+                // Determine fill color based on overlap detection
+                if (overlappingParams.length > 1) {
+                    // Multiple parameters overlap - highlight in red
+                    fillColor = '#ff0000';
+                } else if (overlappingParams.length === 1) {
+                    // Single parameter - use its color
+                    const { param, index } = overlappingParams[0];
+                    fillColor = this.PARAM_COLORS[index % this.PARAM_COLORS.length];
+                    
+                    // Highlight if hovered
+                    if (this.hoveredParameter && this.hoveredParameter.id === param.id) {
+                        fillColor = '#ffeb3b';
                     }
                 }
                 
@@ -135,12 +305,22 @@ class FlashPageGridCanvas {
                     }
                 }
                 
+                // Show dragged parameter at new position
+                if (this.isDraggingParameter && this.draggedParameter && this.dragCurrentCell) {
+                    const newOffset = this.cellToOffset(this.dragCurrentCell.row, this.dragCurrentCell.col);
+                    const totalSize = this.draggedParameter.size * this.draggedParameter.count;
+                    
+                    if (offset >= newOffset && offset < newOffset + totalSize) {
+                        fillColor = '#4CAF50'; // Green for new position
+                    }
+                }
+                
                 // Fill cell
                 this.ctx.fillStyle = fillColor;
                 this.ctx.fillRect(x, y, this.CELL_SIZE, this.CELL_SIZE);
                 
                 // Draw cell border
-                this.ctx.strokeStyle = '#cccccc';
+                this.ctx.strokeStyle = '#9f9f9f';
                 this.ctx.lineWidth = this.LINE_WIDTH;
                 this.ctx.strokeRect(x, y, this.CELL_SIZE, this.CELL_SIZE);
             }
@@ -171,14 +351,26 @@ class FlashPageGridCanvas {
      * Handle mouse down event
      */
     handleMouseDown(event) {
-        if (!this.selectionMode) return;
-        
         const cell = this.getCellFromMouse(event);
-        if (cell) {
+        if (!cell) return;
+        
+        // Handle selection mode
+        if (this.selectionMode) {
             this.isDragging = true;
             this.selectionStart = cell;
             this.selectionEnd = cell;
             this.updateSelectionInfo();
+            this.drawGrid();
+            return;
+        }
+        
+        // Handle parameter dragging (when not in selection mode)
+        if (!this.selectionMode && this.hoveredParameter) {
+            this.isDraggingParameter = true;
+            this.draggedParameter = this.hoveredParameter;
+            this.draggedParameterOriginalOffset = this.draggedParameter.offset;
+            this.dragCurrentCell = cell;
+            this.canvas.style.cursor = 'grabbing';
             this.drawGrid();
         }
     }
@@ -189,6 +381,22 @@ class FlashPageGridCanvas {
     handleMouseMove(event) {
         const cell = this.getCellFromMouse(event);
         if (!cell) return;
+        
+        // Handle parameter dragging
+        if (this.isDraggingParameter && this.draggedParameter) {
+            this.dragCurrentCell = cell;
+            const newOffset = this.cellToOffset(cell.row, cell.col);
+            const address = this.PAGE_BASE_ADDRESS + newOffset;
+            
+            document.getElementById('cellInfo').innerHTML = `
+                <strong>Moving: ${this.draggedParameter.name}</strong><br>
+                New Offset: ${newOffset} (0x${newOffset.toString(16).toUpperCase().padStart(4, '0')})<br>
+                New Address: <span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span><br>
+                <em>Release to place parameter here</em>
+            `;
+            this.drawGrid();
+            return;
+        }
         
         // Handle selection dragging
         if (this.selectionMode && this.isDragging) {
@@ -242,6 +450,40 @@ class FlashPageGridCanvas {
     handleMouseUp(event) {
         if (this.selectionMode && this.isDragging) {
             this.isDragging = false;
+            return;
+        }
+        
+        // Handle parameter drop
+        if (this.isDraggingParameter && this.draggedParameter && this.dragCurrentCell) {
+            const newOffset = this.cellToOffset(this.dragCurrentCell.row, this.dragCurrentCell.col);
+            const newAddress = this.PAGE_BASE_ADDRESS + newOffset;
+            
+            // Check if position actually changed
+            if (newOffset !== this.draggedParameterOriginalOffset) {
+                // Track original values if this is the first modification
+                if (!this.modifiedParameters.has(this.draggedParameter.id)) {
+                    this.modifiedParameters.set(this.draggedParameter.id, {
+                        originalOffset: this.draggedParameterOriginalOffset,
+                        originalAddress: this.draggedParameter.address
+                    });
+                }
+                
+                // Update parameter offset and address locally
+                this.draggedParameter.offset = newOffset;
+                this.draggedParameter.address = newAddress;
+                
+                // Update display to show unsaved changes
+                this.displayParameters();
+                this.updateSaveButton();
+            }
+            
+            // Reset dragging state
+            this.isDraggingParameter = false;
+            this.draggedParameter = null;
+            this.draggedParameterOriginalOffset = null;
+            this.dragCurrentCell = null;
+            this.canvas.style.cursor = 'pointer';
+            this.drawGrid();
         }
     }
     
@@ -316,7 +558,7 @@ class FlashPageGridCanvas {
                 if (data.success) {
                     // Filter parameters by page address range
                     const page_base = this.PAGE_BASE_ADDRESS;
-                    const page_size = 2048;
+                    const page_size = this.PAGE_SIZE;
                     
                     this.parameters = data.data
                         .filter(p => p.address >= page_base && p.address < page_base + page_size)
@@ -373,12 +615,15 @@ class FlashPageGridCanvas {
             const color = this.PARAM_COLORS[index % this.PARAM_COLORS.length];
             const address = this.PAGE_BASE_ADDRESS + param.offset;
             const totalSize = param.size * param.count;
+            const isModified = this.modifiedParameters.has(param.id);
+            const modifiedStyle = isModified ? 'background-color: #fff3cd; border-left: 4px solid #ff9800;' : '';
+            const modifiedBadge = isModified ? '<span style="color: #ff9800; font-weight: bold;"> ● UNSAVED</span>' : '';
             
             return `
-                <div class="parameter-item" style="border-color: ${color};" 
+                <div class="parameter-item" style="border-color: ${color}; ${modifiedStyle}" 
                      onmouseover="gridCanvas.highlightParameter(${param.id})" 
                      onmouseout="gridCanvas.unhighlightParameter()">
-                    <strong>${param.name}</strong>
+                    <strong>${param.name}</strong>${modifiedBadge}
                     Address: <span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span><br>
                     Offset: ${param.offset}-${param.offset + totalSize - 1} (${totalSize} bytes)<br>
                     Type: ${param.type_name || 'N/A'} × ${param.count}
@@ -401,6 +646,101 @@ class FlashPageGridCanvas {
      */
     unhighlightParameter() {
         this.hoveredParameter = null;
+        this.drawGrid();
+    }
+    
+    /**
+     * Update save button visibility and state
+     */
+    updateSaveButton() {
+        const saveBtn = document.getElementById('saveChangesBtn');
+        const discardBtn = document.getElementById('discardChangesBtn');
+        const changesInfo = document.getElementById('unsavedChangesInfo');
+        
+        if (this.modifiedParameters.size > 0) {
+            if (saveBtn) saveBtn.style.display = 'inline-block';
+            if (discardBtn) discardBtn.style.display = 'inline-block';
+            if (changesInfo) {
+                changesInfo.style.display = 'block';
+                changesInfo.textContent = `${this.modifiedParameters.size} parameter(s) with unsaved changes`;
+            }
+        } else {
+            if (saveBtn) saveBtn.style.display = 'none';
+            if (discardBtn) discardBtn.style.display = 'none';
+            if (changesInfo) changesInfo.style.display = 'none';
+        }
+    }
+    
+    /**
+     * Save all modified parameters to database
+     */
+    saveAllChanges() {
+        if (this.modifiedParameters.size === 0) {
+            alert('No changes to save');
+            return;
+        }
+        
+        // Prepare batch update data
+        const updates = [];
+        this.parameters.forEach(param => {
+            if (this.modifiedParameters.has(param.id)) {
+                updates.push({
+                    id: param.id,
+                    address: param.address
+                });
+            }
+        });
+        
+        // Send batch update to server
+        fetch('api/update.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                table: 'mcu_parameters',
+                updates 
+            })
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`Successfully saved ${this.modifiedParameters.size} parameter(s)!`);
+                    this.modifiedParameters.clear();
+                    this.updateSaveButton();
+                    this.loadParameters();
+                } else {
+                    alert('Error saving changes: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+            });
+    }
+    
+    /**
+     * Discard all unsaved changes
+     */
+    discardAllChanges() {
+        if (this.modifiedParameters.size === 0) {
+            return;
+        }
+        
+        const confirmed = confirm(`Discard ${this.modifiedParameters.size} unsaved change(s)?`);
+        if (!confirmed) return;
+        
+        // Restore original values
+        this.parameters.forEach(param => {
+            if (this.modifiedParameters.has(param.id)) {
+                const original = this.modifiedParameters.get(param.id);
+                param.offset = original.originalOffset;
+                param.address = original.originalAddress;
+            }
+        });
+        
+        this.modifiedParameters.clear();
+        this.updateSaveButton();
+        this.displayParameters();
         this.drawGrid();
     }
     
@@ -500,5 +840,24 @@ class FlashPageGridCanvas {
         this.loadParameters();
         this.drawGrid();
         this.setupFormListeners();
+        this.setupSaveButtons();
+    }
+    
+    /**
+     * Setup save/discard buttons
+     */
+    setupSaveButtons() {
+        const saveBtn = document.getElementById('saveChangesBtn');
+        const discardBtn = document.getElementById('discardChangesBtn');
+        
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveAllChanges());
+        }
+        
+        if (discardBtn) {
+            discardBtn.addEventListener('click', () => this.discardAllChanges());
+        }
+        
+        this.updateSaveButton();
     }
 }
