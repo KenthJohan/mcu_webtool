@@ -12,16 +12,16 @@ class FlashPageGridCanvas {
     static findNearestPowerOf2(value, max = 2048) {
         if (value <= 1) return 1;
         if (value >= max) return max;
-        
+
         // Find the power of 2 that is closest
         const log = Math.log2(value);
         const lower = Math.pow(2, Math.floor(log));
         const upper = Math.pow(2, Math.ceil(log));
-        
+
         // Return the closest one
         const lowerDiff = Math.abs(value - lower);
         const upperDiff = Math.abs(value - upper);
-        
+
         return lowerDiff <= upperDiff ? lower : upper;
     }
 
@@ -30,12 +30,12 @@ class FlashPageGridCanvas {
         if (!this.canvas) {
             throw new Error(`Canvas element with id '${canvasId}' not found`);
         }
-        
+
         this.ctx = this.canvas.getContext('2d');
-        
+
         // Total page size constraint
         this.PAGE_SIZE = 2048;
-        
+
         // Grid configuration
         this.COLS = config.cols || 32;
         this.ROWS = config.rows || 64;
@@ -43,15 +43,15 @@ class FlashPageGridCanvas {
         this.LINE_WIDTH = config.lineWidth || 1;
         this.PAGE_BASE_ADDRESS = config.pageBaseAddress || 0x08003000;
         this.API_REQPATH_SELECT = config.apiPath || 'api/select.php';
-        
+
         // Ensure grid dimensions multiply to PAGE_SIZE
         this.validateGridSize();
-        
-        
+
+
         // Canvas dimensions
         this.canvas.width = (this.COLS * this.CELL_SIZE + this.LINE_WIDTH);
         this.canvas.height = (this.ROWS * this.CELL_SIZE + this.LINE_WIDTH);
-        
+
         // State
         this.parameters = [];
         this.selectionMode = false;
@@ -59,32 +59,32 @@ class FlashPageGridCanvas {
         this.selectionEnd = null;
         this.isDragging = false;
         this.hoveredParameter = null;
-        
+
         // Parameter dragging state
         this.isDraggingParameter = false;
         this.draggedParameter = null;
         this.draggedParameterOriginalOffset = null;
         this.dragCurrentCell = null;
-        
+
         // Track parameters with unsaved changes
         this.modifiedParameters = new Map(); // paramId -> {originalOffset, originalAddress}
-        
+
         // Color palette for parameters
         this.PARAM_COLORS = [
             '#FFB3BA', '#FFDFBA', '#FFFFBA', '#BAFFC9', '#BAE1FF',
             '#FFD4BA', '#E0BBE4', '#FFDFD3', '#C7CEEA', '#D4F1F4'
         ];
-        
+
         // Bind event handlers
         this.handleMouseDown = this.handleMouseDown.bind(this);
         this.handleMouseMove = this.handleMouseMove.bind(this);
         this.handleMouseUp = this.handleMouseUp.bind(this);
-        
+
         // Setup event listeners
         this.setupEventListeners();
         this.setupGridSizeControls();
     }
-    
+
     /**
      * Validate and adjust grid size to ensure ROWS * COLS = PAGE_SIZE
      */
@@ -95,60 +95,60 @@ class FlashPageGridCanvas {
             this.ROWS = this.PAGE_SIZE / this.COLS;
         }
     }
-    
+
     /**
      * Update grid dimensions and resize canvas
      */
     updateGridSize(newCols, newRows) {
         this.COLS = newCols;
         this.ROWS = newRows;
-        
+
         // Update canvas dimensions
         this.canvas.width = (this.COLS * this.CELL_SIZE + this.LINE_WIDTH);
         this.canvas.height = (this.ROWS * this.CELL_SIZE + this.LINE_WIDTH);
-        
+
         // Update total display
         const totalDisplay = document.getElementById('gridTotal');
         if (totalDisplay) {
             totalDisplay.textContent = this.COLS * this.ROWS;
         }
-        
+
         // Redraw with new dimensions
         this.drawGrid();
     }
-    
+
     /**
      * Setup grid size control inputs
      */
     setupGridSizeControls() {
         const colsInput = document.getElementById('gridCols');
         const rowsInput = document.getElementById('gridRows');
-        
+
         if (colsInput) {
             colsInput.value = this.COLS;
-            
+
             // Handle manual input
             colsInput.addEventListener('change', (e) => {
                 let value = parseInt(e.target.value) || 32;
                 // Find nearest power of 2
                 const newCols = FlashPageGridCanvas.findNearestPowerOf2(value, this.PAGE_SIZE);
                 const newRows = this.PAGE_SIZE / newCols;
-                
+
                 // Update both inputs
                 colsInput.value = newCols;
                 if (rowsInput) rowsInput.value = newRows;
-                
+
                 // Update grid
                 this.updateGridSize(newCols, newRows);
             });
-            
+
             // Handle step up/down (double/halve)
             colsInput.addEventListener('keydown', (e) => {
                 if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                     e.preventDefault();
                     const currentCols = parseInt(colsInput.value);
                     let newCols;
-                    
+
                     if (e.key === 'ArrowUp') {
                         // Double (if not at max)
                         newCols = Math.min(currentCols * 2, this.PAGE_SIZE);
@@ -156,7 +156,7 @@ class FlashPageGridCanvas {
                         // Halve (if not at min)
                         newCols = Math.max(currentCols / 2, 1);
                     }
-                    
+
                     const newRows = this.PAGE_SIZE / newCols;
                     colsInput.value = newCols;
                     if (rowsInput) rowsInput.value = newRows;
@@ -164,32 +164,32 @@ class FlashPageGridCanvas {
                 }
             });
         }
-        
+
         if (rowsInput) {
             rowsInput.value = this.ROWS;
-            
+
             // Handle manual input
             rowsInput.addEventListener('change', (e) => {
                 let value = parseInt(e.target.value) || 64;
                 // Find nearest power of 2
                 const newRows = FlashPageGridCanvas.findNearestPowerOf2(value, this.PAGE_SIZE);
                 const newCols = this.PAGE_SIZE / newRows;
-                
+
                 // Update both inputs
                 rowsInput.value = newRows;
                 if (colsInput) colsInput.value = newCols;
-                
+
                 // Update grid
                 this.updateGridSize(newCols, newRows);
             });
-            
+
             // Handle step up/down (double/halve)
             rowsInput.addEventListener('keydown', (e) => {
                 if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                     e.preventDefault();
                     const currentRows = parseInt(rowsInput.value);
                     let newRows;
-                    
+
                     if (e.key === 'ArrowUp') {
                         // Double (if not at max)
                         newRows = Math.min(currentRows * 2, this.PAGE_SIZE);
@@ -197,7 +197,7 @@ class FlashPageGridCanvas {
                         // Halve (if not at min)
                         newRows = Math.max(currentRows / 2, 1);
                     }
-                    
+
                     const newCols = this.PAGE_SIZE / newRows;
                     rowsInput.value = newRows;
                     if (colsInput) colsInput.value = newCols;
@@ -206,7 +206,7 @@ class FlashPageGridCanvas {
             });
         }
     }
-    
+
     /**
      * Setup canvas event listeners
      */
@@ -215,7 +215,7 @@ class FlashPageGridCanvas {
         this.canvas.addEventListener('mousemove', this.handleMouseMove);
         this.canvas.addEventListener('mouseup', this.handleMouseUp);
     }
-    
+
     /**
      * Get cell coordinates from mouse position
      */
@@ -223,23 +223,23 @@ class FlashPageGridCanvas {
         const rect = this.canvas.getBoundingClientRect();
         const x = event.clientX - rect.left;
         const y = event.clientY - rect.top;
-        
+
         const col = Math.floor(x / this.CELL_SIZE);
         const row = Math.floor(y / this.CELL_SIZE);
-        
+
         if (row >= 0 && row < this.ROWS && col >= 0 && col < this.COLS) {
             return { row, col };
         }
         return null;
     }
-    
+
     /**
      * Convert row/col to byte offset
      */
     cellToOffset(row, col) {
         return row * this.COLS + col;
     }
-    
+
     /**
      * Convert offset to row/col
      */
@@ -249,25 +249,44 @@ class FlashPageGridCanvas {
             col: offset % this.COLS
         };
     }
-    
+
+    // Draw border around parameter group
+    drawParameterBorder(param, color) {
+        const totalSize = param.size * param.count;
+        const startOffset = param.offset;
+        const endOffset = param.offset + totalSize - 1;
+
+        const startCell = this.offsetToCell(startOffset);
+        const endCell = this.offsetToCell(endOffset);
+
+        const x = startCell.col * this.CELL_SIZE;
+        const y = startCell.row * this.CELL_SIZE;
+        const width = (endCell.col - startCell.col + 1) * this.CELL_SIZE;
+        const height = (endCell.row - startCell.row + 1) * this.CELL_SIZE;
+
+        this.ctx.strokeStyle = color;
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x, y, width, height);
+    }
+
     /**
      * Draw the grid
      */
     drawGrid() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
+
         // Draw cells
         for (let row = 0; row < this.ROWS; row++) {
             for (let col = 0; col < this.COLS; col++) {
                 const x = col * this.CELL_SIZE;
                 const y = row * this.CELL_SIZE;
                 const offset = this.cellToOffset(row, col);
-                
+
                 // Determine cell color
                 let fillColor = '#ffffff';
                 let isPartOfParam = false;
                 let overlappingParams = [];
-                
+
                 // Check if cell is part of a parameter (check ALL parameters for overlaps)
                 for (let i = 0; i < this.parameters.length; i++) {
                     const param = this.parameters[i];
@@ -277,7 +296,7 @@ class FlashPageGridCanvas {
                         isPartOfParam = true;
                     }
                 }
-                
+
                 // Determine fill color based on overlap detection
                 if (overlappingParams.length > 1) {
                     // Multiple parameters overlap - highlight in red
@@ -286,74 +305,88 @@ class FlashPageGridCanvas {
                     // Single parameter - use its color
                     const { param, index } = overlappingParams[0];
                     fillColor = this.PARAM_COLORS[index % this.PARAM_COLORS.length];
-                    
+
                     // Highlight if hovered
                     if (this.hoveredParameter && this.hoveredParameter.id === param.id) {
                         fillColor = '#ffeb3b';
                     }
                 }
-                
+
                 // Current selection
                 if (this.selectionMode && this.selectionStart && this.selectionEnd) {
                     const startOffset = this.cellToOffset(this.selectionStart.row, this.selectionStart.col);
                     const endOffset = this.cellToOffset(this.selectionEnd.row, this.selectionEnd.col);
                     const minOffset = Math.min(startOffset, endOffset);
                     const maxOffset = Math.max(startOffset, endOffset);
-                    
+
                     if (offset >= minOffset && offset <= maxOffset) {
                         fillColor = '#2196F3';
                     }
                 }
-                
+
                 // Show dragged parameter at new position
                 if (this.isDraggingParameter && this.draggedParameter && this.dragCurrentCell) {
                     const newOffset = this.cellToOffset(this.dragCurrentCell.row, this.dragCurrentCell.col);
                     const totalSize = this.draggedParameter.size * this.draggedParameter.count;
-                    
+
                     if (offset >= newOffset && offset < newOffset + totalSize) {
                         fillColor = '#4CAF50'; // Green for new position
                     }
                 }
-                
+
                 // Fill cell
                 this.ctx.fillStyle = fillColor;
                 this.ctx.fillRect(x, y, this.CELL_SIZE, this.CELL_SIZE);
-                
+
                 // Draw cell border
                 this.ctx.strokeStyle = '#9f9f9f';
                 this.ctx.lineWidth = this.LINE_WIDTH;
                 this.ctx.strokeRect(x, y, this.CELL_SIZE, this.CELL_SIZE);
             }
         }
-        
-        // Draw red border around hovered parameter group
-        if (this.hoveredParameter) {
-            const param = this.hoveredParameter;
+
+        // Draw parameter IDs in the center of each parameter group
+        this.parameters.forEach(param => {
             const totalSize = param.size * param.count;
             const startOffset = param.offset;
             const endOffset = param.offset + totalSize - 1;
-            
-            const startCell = this.offsetToCell(startOffset);
-            const endCell = this.offsetToCell(endOffset);
-            
-            const x = startCell.col * this.CELL_SIZE;
-            const y = startCell.row * this.CELL_SIZE;
-            const width = (endCell.col - startCell.col + 1) * this.CELL_SIZE;
-            const height = (endCell.row - startCell.row + 1) * this.CELL_SIZE;
-            
-            this.ctx.strokeStyle = '#ff0000';
-            this.ctx.lineWidth = 3;
-            this.ctx.strokeRect(x, y, width, height);
+
+            // Calculate center offset
+            const centerOffset = startOffset + Math.floor(totalSize / 2);
+            const centerCell = this.offsetToCell(centerOffset);
+
+            // Calculate center coordinates
+            const centerX = (centerCell.col * this.CELL_SIZE) + (this.CELL_SIZE / 2);
+            const centerY = (centerCell.row * this.CELL_SIZE) + (this.CELL_SIZE / 2);
+
+            // Draw parameter ID text
+            this.ctx.fillStyle = '#000000';
+            this.ctx.font = 'bold 12px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(param.id, centerX, centerY);
+        });
+
+
+        // Draw blue border around each parameter group
+        this.parameters.forEach(param => {
+            this.drawParameterBorder(param, '#00447c');
+        });
+
+        // Draw red border around hovered parameter group
+        if (this.hoveredParameter) {
+            const param = this.hoveredParameter;
+            this.drawParameterBorder(param, '#ff0000');
         }
     }
-    
+
     /**
      * Handle mouse down event
      */
     handleMouseDown(event) {
         const cell = this.getCellFromMouse(event);
         if (!cell) return;
-        
+
         // Handle selection mode
         if (this.selectionMode) {
             this.isDragging = true;
@@ -363,7 +396,7 @@ class FlashPageGridCanvas {
             this.drawGrid();
             return;
         }
-        
+
         // Handle parameter dragging (when not in selection mode)
         if (!this.selectionMode && this.hoveredParameter) {
             this.isDraggingParameter = true;
@@ -374,20 +407,20 @@ class FlashPageGridCanvas {
             this.drawGrid();
         }
     }
-    
+
     /**
      * Handle mouse move event
      */
     handleMouseMove(event) {
         const cell = this.getCellFromMouse(event);
         if (!cell) return;
-        
+
         // Handle parameter dragging
         if (this.isDraggingParameter && this.draggedParameter) {
             this.dragCurrentCell = cell;
             const newOffset = this.cellToOffset(cell.row, cell.col);
             const address = this.PAGE_BASE_ADDRESS + newOffset;
-            
+
             document.getElementById('cellInfo').innerHTML = `
                 <strong>Moving: ${this.draggedParameter.name}</strong><br>
                 New Offset: ${newOffset} (0x${newOffset.toString(16).toUpperCase().padStart(4, '0')})<br>
@@ -397,7 +430,7 @@ class FlashPageGridCanvas {
             this.drawGrid();
             return;
         }
-        
+
         // Handle selection dragging
         if (this.selectionMode && this.isDragging) {
             this.selectionEnd = cell;
@@ -407,7 +440,7 @@ class FlashPageGridCanvas {
             // Handle hover to show parameter info
             const offset = this.cellToOffset(cell.row, cell.col);
             let foundParam = null;
-            
+
             for (const param of this.parameters) {
                 const totalSize = param.size * param.count;
                 if (offset >= param.offset && offset < param.offset + totalSize) {
@@ -415,11 +448,11 @@ class FlashPageGridCanvas {
                     break;
                 }
             }
-            
+
             if (foundParam !== this.hoveredParameter) {
                 this.hoveredParameter = foundParam;
                 this.drawGrid();
-                
+
                 if (foundParam) {
                     const address = this.PAGE_BASE_ADDRESS + offset;
                     document.getElementById('cellInfo').innerHTML = `
@@ -443,7 +476,7 @@ class FlashPageGridCanvas {
             }
         }
     }
-    
+
     /**
      * Handle mouse up event
      */
@@ -452,12 +485,12 @@ class FlashPageGridCanvas {
             this.isDragging = false;
             return;
         }
-        
+
         // Handle parameter drop
         if (this.isDraggingParameter && this.draggedParameter && this.dragCurrentCell) {
             const newOffset = this.cellToOffset(this.dragCurrentCell.row, this.dragCurrentCell.col);
             const newAddress = this.PAGE_BASE_ADDRESS + newOffset;
-            
+
             // Check if position actually changed
             if (newOffset !== this.draggedParameterOriginalOffset) {
                 // Track original values if this is the first modification
@@ -467,16 +500,16 @@ class FlashPageGridCanvas {
                         originalAddress: this.draggedParameter.address
                     });
                 }
-                
+
                 // Update parameter offset and address locally
                 this.draggedParameter.offset = newOffset;
                 this.draggedParameter.address = newAddress;
-                
+
                 // Update display to show unsaved changes
                 this.displayParameters();
                 this.updateSaveButton();
             }
-            
+
             // Reset dragging state
             this.isDraggingParameter = false;
             this.draggedParameter = null;
@@ -486,26 +519,26 @@ class FlashPageGridCanvas {
             this.drawGrid();
         }
     }
-    
+
     /**
      * Update selection info in form fields
      */
     updateSelectionInfo() {
         if (!this.selectionStart || !this.selectionEnd) return;
-        
+
         const startOffset = this.cellToOffset(this.selectionStart.row, this.selectionStart.col);
         const endOffset = this.cellToOffset(this.selectionEnd.row, this.selectionEnd.col);
         const minOffset = Math.min(startOffset, endOffset);
         const maxOffset = Math.max(startOffset, endOffset);
         const size = maxOffset - minOffset + 1;
-        
+
         document.getElementById('paramOffset').value = minOffset;
         document.getElementById('paramSize').value = size;
-        
+
         // Update count if type is selected
         this.updateSize();
     }
-    
+
     /**
      * Start selection mode
      */
@@ -517,7 +550,7 @@ class FlashPageGridCanvas {
         this.canvas.style.cursor = 'crosshair';
         this.drawGrid();
     }
-    
+
     /**
      * Clear selection
      */
@@ -531,7 +564,7 @@ class FlashPageGridCanvas {
         document.getElementById('parameterForm').reset();
         this.drawGrid();
     }
-    
+
     /**
      * Update size based on type and count
      */
@@ -539,7 +572,7 @@ class FlashPageGridCanvas {
         const typeSelect = document.getElementById('paramType');
         const countInput = document.getElementById('paramCount');
         const sizeInput = document.getElementById('paramSize');
-        
+
         if (typeSelect.selectedIndex > 0) {
             const selectedOption = typeSelect.options[typeSelect.selectedIndex];
             const typeSize = parseInt(selectedOption.dataset.size);
@@ -547,7 +580,7 @@ class FlashPageGridCanvas {
             sizeInput.value = typeSize * count;
         }
     }
-    
+
     /**
      * Load parameters from database
      */
@@ -559,7 +592,7 @@ class FlashPageGridCanvas {
                     // Filter parameters by page address range
                     const page_base = this.PAGE_BASE_ADDRESS;
                     const page_size = this.PAGE_SIZE;
-                    
+
                     this.parameters = data.data
                         .filter(p => p.address >= page_base && p.address < page_base + page_size)
                         .map(p => {
@@ -568,7 +601,7 @@ class FlashPageGridCanvas {
                             return p;
                         })
                         .sort((a, b) => a.address - b.address);
-                    
+
                     // Fetch additional data (types, quantities, units) for each parameter
                     Promise.all([
                         fetch(`${this.API_REQPATH_SELECT}?table=types`).then(r => r.json()),
@@ -578,18 +611,18 @@ class FlashPageGridCanvas {
                         const types = typesData.success ? typesData.data : [];
                         const quantities = quantitiesData.success ? quantitiesData.data : [];
                         const units = unitsData.success ? unitsData.data : [];
-                        
+
                         // Enrich parameters with related data
                         this.parameters.forEach(param => {
                             const type = types.find(t => t.id === param.fk_type);
                             const quantity = quantities.find(q => q.id === param.fk_quantity);
                             const unit = units.find(u => u.id === param.fk_unit);
-                            
+
                             param.type_name = type ? type.type_name : null;
                             param.quantity_name = quantity ? quantity.quantity_name : null;
                             param.unit_symbol = unit ? unit.unit_symbol : null;
                         });
-                        
+
                         this.displayParameters();
                         this.drawGrid();
                     });
@@ -599,18 +632,18 @@ class FlashPageGridCanvas {
             })
             .catch(error => console.error('Error:', error));
     }
-    
+
     /**
      * Display parameters in list
      */
     displayParameters() {
         const list = document.getElementById('parameterList');
-        
+
         if (this.parameters.length === 0) {
             list.innerHTML = '<em style="color: #999;">No parameters in this page yet</em>';
             return;
         }
-        
+
         list.innerHTML = this.parameters.map((param, index) => {
             const color = this.PARAM_COLORS[index % this.PARAM_COLORS.length];
             const address = this.PAGE_BASE_ADDRESS + param.offset;
@@ -618,7 +651,7 @@ class FlashPageGridCanvas {
             const isModified = this.modifiedParameters.has(param.id);
             const modifiedStyle = isModified ? 'background-color: #fff3cd; border-left: 4px solid #ff9800;' : '';
             const modifiedBadge = isModified ? '<span style="color: #ff9800; font-weight: bold;"> ● UNSAVED</span>' : '';
-            
+
             return `
                 <div class="parameter-item" style="border-color: ${color}; ${modifiedStyle}" 
                      onmouseover="gridCanvas.highlightParameter(${param.id})" 
@@ -632,7 +665,7 @@ class FlashPageGridCanvas {
             `;
         }).join('');
     }
-    
+
     /**
      * Highlight parameter on grid
      */
@@ -640,7 +673,7 @@ class FlashPageGridCanvas {
         this.hoveredParameter = this.parameters.find(p => p.id == paramId);
         this.drawGrid();
     }
-    
+
     /**
      * Unhighlight parameter on grid
      */
@@ -648,7 +681,7 @@ class FlashPageGridCanvas {
         this.hoveredParameter = null;
         this.drawGrid();
     }
-    
+
     /**
      * Update save button visibility and state
      */
@@ -656,7 +689,7 @@ class FlashPageGridCanvas {
         const saveBtn = document.getElementById('saveChangesBtn');
         const discardBtn = document.getElementById('discardChangesBtn');
         const changesInfo = document.getElementById('unsavedChangesInfo');
-        
+
         if (this.modifiedParameters.size > 0) {
             if (saveBtn) saveBtn.style.display = 'inline-block';
             if (discardBtn) discardBtn.style.display = 'inline-block';
@@ -670,7 +703,7 @@ class FlashPageGridCanvas {
             if (changesInfo) changesInfo.style.display = 'none';
         }
     }
-    
+
     /**
      * Save all modified parameters to database
      */
@@ -679,7 +712,7 @@ class FlashPageGridCanvas {
             alert('No changes to save');
             return;
         }
-        
+
         // Prepare batch update data
         const updates = [];
         this.parameters.forEach(param => {
@@ -690,16 +723,16 @@ class FlashPageGridCanvas {
                 });
             }
         });
-        
+
         // Send batch update to server
         fetch('api/update.php', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 table: 'mcu_parameters',
-                updates 
+                updates
             })
         })
             .then(response => response.json())
@@ -717,7 +750,7 @@ class FlashPageGridCanvas {
                 alert('Error: ' + error);
             });
     }
-    
+
     /**
      * Discard all unsaved changes
      */
@@ -725,10 +758,10 @@ class FlashPageGridCanvas {
         if (this.modifiedParameters.size === 0) {
             return;
         }
-        
+
         const confirmed = confirm(`Discard ${this.modifiedParameters.size} unsaved change(s)?`);
         if (!confirmed) return;
-        
+
         // Restore original values
         this.parameters.forEach(param => {
             if (this.modifiedParameters.has(param.id)) {
@@ -737,13 +770,13 @@ class FlashPageGridCanvas {
                 param.address = original.originalAddress;
             }
         });
-        
+
         this.modifiedParameters.clear();
         this.updateSaveButton();
         this.displayParameters();
         this.drawGrid();
     }
-    
+
     /**
      * Load dropdown data for form
      */
@@ -764,7 +797,7 @@ class FlashPageGridCanvas {
                 }
             })
             .catch(error => console.error('Error loading types:', error));
-        
+
         // Load quantities
         fetch(`${this.API_REQPATH_SELECT}?table=quantities`)
             .then(response => response.json())
@@ -780,7 +813,7 @@ class FlashPageGridCanvas {
                 }
             })
             .catch(error => console.error('Error loading quantities:', error));
-        
+
         // Load units
         fetch(`${this.API_REQPATH_SELECT}?table=units`)
             .then(response => response.json())
@@ -798,20 +831,20 @@ class FlashPageGridCanvas {
             })
             .catch(error => console.error('Error loading units:', error));
     }
-    
+
     /**
      * Setup form event listeners
      */
     setupFormListeners() {
         document.getElementById('paramType').addEventListener('change', () => this.updateSize());
         document.getElementById('paramCount').addEventListener('input', () => this.updateSize());
-        
+
         document.getElementById('parameterForm').addEventListener('submit', (event) => {
             event.preventDefault();
-            
+
             const formData = new FormData(event.target);
             formData.append('action', 'add_parameter');
-            
+
             fetch('', {
                 method: 'POST',
                 body: new URLSearchParams(formData)
@@ -831,7 +864,7 @@ class FlashPageGridCanvas {
                 });
         });
     }
-    
+
     /**
      * Initialize the grid canvas
      */
@@ -842,22 +875,22 @@ class FlashPageGridCanvas {
         this.setupFormListeners();
         this.setupSaveButtons();
     }
-    
+
     /**
      * Setup save/discard buttons
      */
     setupSaveButtons() {
         const saveBtn = document.getElementById('saveChangesBtn');
         const discardBtn = document.getElementById('discardChangesBtn');
-        
+
         if (saveBtn) {
             saveBtn.addEventListener('click', () => this.saveAllChanges());
         }
-        
+
         if (discardBtn) {
             discardBtn.addEventListener('click', () => this.discardAllChanges());
         }
-        
+
         this.updateSaveButton();
     }
 }
