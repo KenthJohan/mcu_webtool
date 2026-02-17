@@ -31,7 +31,7 @@ try {
     $updates = $jsonData['updates'];
     
     // Validate table name (whitelist allowed tables for security)
-    $allowedTables = ['mcu_parameters', 'types', 'quantities', 'units'];
+    $allowedTables = ['parameters', 'types', 'quantities', 'units'];
     if (!in_array($table, $allowedTables)) {
         echo json_encode([
             'success' => false,

@@ -272,9 +272,9 @@ class FlashPageGridCanvas {
 
     // Draw border around parameter group
     drawParameterBorder(param, color) {
-        const totalSize = param.size * param.count;
+        const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
         const startOffset = param.offset;
-        const endOffset = param.offset + totalSize - 1;
+        const endOffset = param.offset + totalSizeBytes - 1;
 
         this.ctx.strokeStyle = color;
         this.ctx.lineWidth = 2;
@@ -355,8 +355,8 @@ class FlashPageGridCanvas {
                 // Check if cell is part of a parameter (check ALL parameters for overlaps)
                 for (let i = 0; i < this.parameters.length; i++) {
                     const param = this.parameters[i];
-                    const totalSize = param.size * param.count;
-                    if (offset >= param.offset && offset < param.offset + totalSize) {
+                    const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
+                    if (offset >= param.offset && offset < param.offset + totalSizeBytes) {
                         overlappingParams.push({ param, index: i });
                         isPartOfParam = true;
                     }
@@ -392,9 +392,9 @@ class FlashPageGridCanvas {
                 // Show dragged parameter at new position
                 if (this.isDraggingParameter && this.draggedParameter && this.dragCurrentCell) {
                     const newOffset = this.cellToOffset(this.dragCurrentCell.row, this.dragCurrentCell.col);
-                    const totalSize = this.draggedParameter.size * this.draggedParameter.count;
+                    const totalSizeBytes = Math.ceil(this.draggedParameter.bitsize / 8) * this.draggedParameter.count;
 
-                    if (offset >= newOffset && offset < newOffset + totalSize) {
+                    if (offset >= newOffset && offset < newOffset + totalSizeBytes) {
                         fillColor = '#4CAF50'; // Green for new position
                     }
                 }
@@ -412,12 +412,12 @@ class FlashPageGridCanvas {
 
         // Draw parameter IDs in the center of each parameter group
         this.parameters.forEach(param => {
-            const totalSize = param.size * param.count;
+            const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
             const startOffset = param.offset;
-            const endOffset = param.offset + totalSize - 1;
+            const endOffset = param.offset + totalSizeBytes - 1;
 
             // Calculate center offset
-            const centerOffset = startOffset + Math.floor(totalSize / 2);
+            const centerOffset = startOffset + Math.floor(totalSizeBytes / 2);
             const centerCell = this.offsetToCell(centerOffset);
 
             // Calculate center coordinates
@@ -548,8 +548,8 @@ class FlashPageGridCanvas {
             let foundParam = null;
 
             for (const param of this.parameters) {
-                const totalSize = param.size * param.count;
-                if (offset >= param.offset && offset < param.offset + totalSize) {
+                const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
+                if (offset >= param.offset && offset < param.offset + totalSizeBytes) {
                     foundParam = param;
                     break;
                 }
@@ -560,13 +560,13 @@ class FlashPageGridCanvas {
                     this.highlightParameter(foundParam.id);
                     const address = this.PAGE_BASE_ADDRESS + offset;
                     const relativeOffset = offset - foundParam.offset;
-                    const totalSize = foundParam.size * foundParam.count;
+                    const totalSizeBytes = Math.ceil(foundParam.bitsize / 8) * foundParam.count;
                     document.getElementById('cellInfo').innerHTML = `
                         <strong>${foundParam.name}</strong><br>
                         Type: ${foundParam.type_name || 'N/A'} | 
-                        Size: ${foundParam.size} bytes × ${foundParam.count}<br>
+                        Size: ${foundParam.bitsize} bits × ${foundParam.count}<br>
                         Address: <span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span> 
-                        (offset: ${foundParam.offset}-${foundParam.offset + totalSize - 1})<br>
+                        (offset: ${foundParam.offset}-${foundParam.offset + totalSizeBytes - 1})<br>
                         ${foundParam.quantity_name ? 'Quantity: ' + foundParam.quantity_name : ''} 
                         ${foundParam.unit_symbol ? '(' + foundParam.unit_symbol + ')' : ''}<br>
                         ${foundParam.description || ''}
@@ -637,10 +637,11 @@ class FlashPageGridCanvas {
         const endOffset = this.cellToOffset(this.selectionEnd.row, this.selectionEnd.col);
         const minOffset = Math.min(startOffset, endOffset);
         const maxOffset = Math.max(startOffset, endOffset);
-        const size = maxOffset - minOffset + 1;
+        const sizeBytes = maxOffset - minOffset + 1;
 
         document.getElementById('paramOffset').value = minOffset;
-        document.getElementById('paramSize').value = size;
+        // Convert bytes to bits (1 byte = 8 bits)
+        document.getElementById('paramSize').value = sizeBytes * 8;
 
         // Update count if type is selected
         this.updateSize();
@@ -682,9 +683,10 @@ class FlashPageGridCanvas {
 
         if (typeSelect.selectedIndex > 0) {
             const selectedOption = typeSelect.options[typeSelect.selectedIndex];
-            const typeSize = parseInt(selectedOption.dataset.size);
+            const typeSizeBytes = parseInt(selectedOption.dataset.size);
             const count = parseInt(countInput.value) || 1;
-            sizeInput.value = typeSize * count;
+            // Convert bytes to bits (1 byte = 8 bits)
+            sizeInput.value = typeSizeBytes * 8 * count;
         }
     }
 
@@ -754,7 +756,7 @@ class FlashPageGridCanvas {
         const tableRows = this.parameters.map((param, index) => {
             const color = this.PARAM_COLORS[index % this.PARAM_COLORS.length];
             const address = this.PAGE_BASE_ADDRESS + param.offset;
-            const totalSize = param.size * param.count;
+            const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
             const isModified = this.modifiedParameters.has(param.id);
             const modifiedStyle = isModified ? 'background-color: #fff3cd;' : '';
             const modifiedBadge = isModified ? '<span style="color: #ff9800; font-weight: bold;" title="Unsaved changes"> ●</span>' : '';
@@ -765,8 +767,8 @@ class FlashPageGridCanvas {
                     onmouseout="gridCanvas.unhighlightParameter()">
                     <td style="font-weight: bold;">${param.name}${modifiedBadge}</td>
                     <td><span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span></td>
-                    <td>${param.offset}-${param.offset + totalSize - 1}</td>
-                    <td>${totalSize}</td>
+                    <td>${param.offset}-${param.offset + totalSizeBytes - 1}</td>
+                    <td>${totalSizeBytes}</td>
                     <td>${param.type_name || 'N/A'} × ${param.count}</td>
                     <td>${param.unit_symbol || '-'}</td>
                 </tr>
@@ -947,7 +949,7 @@ class FlashPageGridCanvas {
                         const option = document.createElement('option');
                         option.value = type.id;
                         option.dataset.size = type.size_bytes;
-                        option.textContent = `${type.type_name} (${type.size_bytes} bytes)`;
+                        option.textContent = `${type.type_name} (${type.size_bytes * 8} bits)`;
                         typeSelect.appendChild(option);
                     });
                 }
