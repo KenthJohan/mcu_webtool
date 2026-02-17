@@ -72,7 +72,6 @@ class FlashPageGridCanvas {
         this.lastPanX = 0;
         this.lastPanY = 0;
         this.MIN_ZOOM = 0.25;
-        this.MAX_ZOOM = 4.0;
         this.ZOOM_SENSITIVITY = 0.001;
 
         // Parameter dragging state
@@ -311,7 +310,8 @@ class FlashPageGridCanvas {
         const endOffset = param.offset + totalSizeBytes - 1;
 
         this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = 2;
+        // Scale border width inversely with zoom to maintain consistent visual thickness
+        this.ctx.lineWidth = 2 / this.cameraZoom;
 
         // Draw border for each cell that's part of this parameter
         for (let offset = startOffset; offset <= endOffset; offset++) {
@@ -490,6 +490,51 @@ class FlashPageGridCanvas {
         // Draw alignment grid overlay
         if (this.ALIGNMENT_GRID > 0) {
             this.drawAlignmentGrid();
+        }
+
+        // Draw bit grid when zoomed in close
+        if (this.cameraZoom >= 2.0) {
+            this.drawBitGrid();
+        }
+    }
+
+    /**
+     * Draw bit grid within each byte cell when zoomed in
+     */
+    drawBitGrid() {
+        this.ctx.strokeStyle = 'rgba(100, 100, 100, 0.3)';
+        this.ctx.lineWidth = 0.5;
+
+        for (let row = 0; row < this.ROWS; row++) {
+            for (let col = 0; col < this.COLS; col++) {
+                const cellX = this.LEFT_MARGIN + col * this.CELL_SIZE;
+                const cellY = row * this.CELL_SIZE;
+                const bitWidth = this.CELL_SIZE / 8;
+
+                // Draw vertical lines to separate bits
+                for (let bit = 1; bit < 8; bit++) {
+                    const x = cellX + bit * bitWidth;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, cellY);
+                    this.ctx.lineTo(x, cellY + this.CELL_SIZE);
+                    this.ctx.stroke();
+                }
+
+                // Optionally draw bit numbers when zoomed in very close
+                if (this.cameraZoom >= 3.0) {
+                    this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                    this.ctx.font = `${Math.floor(bitWidth * 0.6)}px monospace`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+
+                    for (let bit = 0; bit < 8; bit++) {
+                        const bitX = cellX + bit * bitWidth + bitWidth / 2;
+                        const bitY = cellY + this.CELL_SIZE / 2;
+                        // Draw bit numbers from 7 to 0 (MSB to LSB, left to right)
+                        this.ctx.fillText((7 - bit).toString(), bitX, bitY);
+                    }
+                }
+            }
         }
     }
 
@@ -715,7 +760,7 @@ class FlashPageGridCanvas {
         // Update zoom level
         const zoomAmount = -event.deltaY * this.ZOOM_SENSITIVITY;
         const newZoom = this.cameraZoom * Math.exp(zoomAmount);
-        this.cameraZoom = Math.max(this.MIN_ZOOM, Math.min(this.MAX_ZOOM, newZoom));
+        this.cameraZoom = Math.max(this.MIN_ZOOM, newZoom);
         
         // Get world position after zoom
         const worldAfterZoom = this.screenToWorld(mouseX, mouseY);
@@ -747,7 +792,7 @@ class FlashPageGridCanvas {
         const zoomX = this.canvas.width / contentWidth;
         const zoomY = this.canvas.height / contentHeight;
         
-        this.cameraZoom = Math.min(zoomX, zoomY, this.MAX_ZOOM) * 0.95; // 95% to add padding
+        this.cameraZoom = Math.min(zoomX, zoomY) * 0.95; // 95% to add padding
         
         // Center the content
         this.cameraOffsetX = (this.canvas.width - contentWidth * this.cameraZoom) / 2;

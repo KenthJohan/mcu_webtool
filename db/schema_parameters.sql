@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS parameters (
     name VARCHAR(100) NOT NULL,
     address INTEGER NOT NULL,
     bitsize INTEGER NOT NULL,
+    shiftleft INTEGER NOT NULL DEFAULT 0,
     count INTEGER NOT NULL DEFAULT 1,
     fk_type INTEGER,
     fk_quantity INTEGER,
