@@ -556,22 +556,23 @@ class FlashPageGridCanvas {
             }
 
             if (foundParam !== this.hoveredParameter) {
-                this.hoveredParameter = foundParam;
-                this.drawGrid();
-
                 if (foundParam) {
+                    this.highlightParameter(foundParam.id);
                     const address = this.PAGE_BASE_ADDRESS + offset;
+                    const relativeOffset = offset - foundParam.offset;
+                    const totalSize = foundParam.size * foundParam.count;
                     document.getElementById('cellInfo').innerHTML = `
                         <strong>${foundParam.name}</strong><br>
                         Type: ${foundParam.type_name || 'N/A'} | 
                         Size: ${foundParam.size} bytes × ${foundParam.count}<br>
                         Address: <span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span> 
-                        (offset: ${offset})<br>
+                        (offset: ${foundParam.offset}-${foundParam.offset + totalSize - 1})<br>
                         ${foundParam.quantity_name ? 'Quantity: ' + foundParam.quantity_name : ''} 
                         ${foundParam.unit_symbol ? '(' + foundParam.unit_symbol + ')' : ''}<br>
                         ${foundParam.description || ''}
                     `;
                 } else {
+                    this.unhighlightParameter();
                     const address = this.PAGE_BASE_ADDRESS + offset;
                     document.getElementById('cellInfo').innerHTML = `
                         Offset: ${offset} (0x${offset.toString(16).toUpperCase().padStart(4, '0')})<br>
@@ -691,7 +692,7 @@ class FlashPageGridCanvas {
      * Load parameters from database
      */
     loadParameters() {
-        fetch(`${this.API_REQPATH_SELECT}?table=mcu_parameters`)
+        fetch(`${this.API_REQPATH_SELECT}?table=parameters`)
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -740,7 +741,7 @@ class FlashPageGridCanvas {
     }
 
     /**
-     * Display parameters in list
+     * Display parameters in table
      */
     displayParameters() {
         const list = document.getElementById('parameterList');
@@ -750,42 +751,91 @@ class FlashPageGridCanvas {
             return;
         }
 
-        list.innerHTML = this.parameters.map((param, index) => {
+        const tableRows = this.parameters.map((param, index) => {
             const color = this.PARAM_COLORS[index % this.PARAM_COLORS.length];
             const address = this.PAGE_BASE_ADDRESS + param.offset;
             const totalSize = param.size * param.count;
             const isModified = this.modifiedParameters.has(param.id);
-            const modifiedStyle = isModified ? 'background-color: #fff3cd; border-left: 4px solid #ff9800;' : '';
-            const modifiedBadge = isModified ? '<span style="color: #ff9800; font-weight: bold;"> ● UNSAVED</span>' : '';
+            const modifiedStyle = isModified ? 'background-color: #fff3cd;' : '';
+            const modifiedBadge = isModified ? '<span style="color: #ff9800; font-weight: bold;" title="Unsaved changes"> ●</span>' : '';
 
             return `
-                <div class="parameter-item" style="border-color: ${color}; ${modifiedStyle}" 
-                     onmouseover="gridCanvas.highlightParameter(${param.id})" 
-                     onmouseout="gridCanvas.unhighlightParameter()">
-                    <strong>${param.name}</strong>${modifiedBadge}
-                    Address: <span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span><br>
-                    Offset: ${param.offset}-${param.offset + totalSize - 1} (${totalSize} bytes)<br>
-                    Type: ${param.type_name || 'N/A'} × ${param.count}
-                    ${param.unit_symbol ? ' [' + param.unit_symbol + ']' : ''}
-                </div>
+                <tr class="parameter-row" data-param-id="${param.id}" style="border-left: 10px solid ${color}; ${modifiedStyle}" 
+                    onmouseover="gridCanvas.highlightParameter(${param.id})" 
+                    onmouseout="gridCanvas.unhighlightParameter()">
+                    <td style="font-weight: bold;">${param.name}${modifiedBadge}</td>
+                    <td><span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span></td>
+                    <td>${param.offset}-${param.offset + totalSize - 1}</td>
+                    <td>${totalSize}</td>
+                    <td>${param.type_name || 'N/A'} × ${param.count}</td>
+                    <td>${param.unit_symbol || '-'}</td>
+                </tr>
             `;
         }).join('');
+
+        list.innerHTML = `
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9em;">
+                <thead>
+                    <tr style="background-color: #f0f0f0; border-bottom: 2px solid #333;">
+                        <th style="padding: 8px; text-align: left;">Name</th>
+                        <th style="padding: 8px; text-align: left;">Address</th>
+                        <th style="padding: 8px; text-align: left;">Offset</th>
+                        <th style="padding: 8px; text-align: left;">Size (B)</th>
+                        <th style="padding: 8px; text-align: left;">Type</th>
+                        <th style="padding: 8px; text-align: left;">Unit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+        `;
     }
 
     /**
-     * Highlight parameter on grid
+     * Highlight parameter on grid and table row
      */
     highlightParameter(paramId) {
         this.hoveredParameter = this.parameters.find(p => p.id == paramId);
+        this.highlightTableRow(paramId);
         this.drawGrid();
     }
 
     /**
-     * Unhighlight parameter on grid
+     * Unhighlight parameter on grid and table row
      */
     unhighlightParameter() {
         this.hoveredParameter = null;
+        this.unhighlightTableRow();
         this.drawGrid();
+    }
+
+    /**
+     * Highlight table row for parameter
+     */
+    highlightTableRow(paramId) {
+        // Remove previous highlights
+        document.querySelectorAll('.parameter-row').forEach(row => {
+            row.style.backgroundColor = row.style.backgroundColor.includes('#fff3cd') ? '#fff3cd' : '';
+        });
+
+        // Highlight the corresponding row
+        const row = document.querySelector(`.parameter-row[data-param-id="${paramId}"]`);
+        if (row) {
+            const isModified = this.modifiedParameters.has(paramId);
+            row.style.backgroundColor = isModified ? '#ffe4a3' : '#e3f2fd';
+        }
+    }
+
+    /**
+     * Remove table row highlight
+     */
+    unhighlightTableRow() {
+        document.querySelectorAll('.parameter-row').forEach(row => {
+            const paramId = parseInt(row.dataset.paramId);
+            const isModified = this.modifiedParameters.has(paramId);
+            row.style.backgroundColor = isModified ? '#fff3cd' : '';
+        });
     }
 
     /**
@@ -837,7 +887,7 @@ class FlashPageGridCanvas {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                table: 'mcu_parameters',
+                table: 'parameters',
                 updates
             })
         })

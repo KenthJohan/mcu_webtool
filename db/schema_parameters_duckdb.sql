@@ -2,7 +2,7 @@
 CREATE SEQUENCE IF NOT EXISTS seq_types_id START 1;
 CREATE SEQUENCE IF NOT EXISTS seq_quantities_id START 1;
 CREATE SEQUENCE IF NOT EXISTS seq_units_id START 1;
-CREATE SEQUENCE IF NOT EXISTS seq_mcu_parameters_id START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_parameters_id START 1;
 
 -- Table for storing data types (must be created first due to foreign key dependencies)
 CREATE TABLE IF NOT EXISTS types (
@@ -240,8 +240,8 @@ INSERT OR IGNORE INTO units (unit_symbol, unit_name, description) VALUES
 ('ppb', 'Parts per billion', 'Ratio unit');
 
 
-CREATE TABLE IF NOT EXISTS mcu_parameters (
-    id INTEGER PRIMARY KEY DEFAULT nextval('seq_mcu_parameters_id'),
+CREATE TABLE IF NOT EXISTS parameters (
+    id INTEGER PRIMARY KEY DEFAULT nextval('seq_parameters_id'),
     name VARCHAR(100) NOT NULL,
     address INTEGER NOT NULL,
     size INTEGER NOT NULL,
@@ -258,21 +258,21 @@ CREATE TABLE IF NOT EXISTS mcu_parameters (
 );
 
 -- Create index on address for faster lookups
-CREATE INDEX IF NOT EXISTS idx_address ON mcu_parameters(address);
+CREATE INDEX IF NOT EXISTS idx_address ON parameters(address);
 
 -- Create index on name for faster searches
-CREATE INDEX IF NOT EXISTS idx_name ON mcu_parameters(name);
+CREATE INDEX IF NOT EXISTS idx_name ON parameters(name);
 
 
 -- Delete any existing parameters that conflict with the new configuration parameters we want to insert
-DELETE FROM mcu_parameters WHERE name IN ('CONFIG_PARAM1', 'CONFIG_PARAM2', 'CONFIG_PARAM3', 'FLASH_PAGE_CRC32');
+DELETE FROM parameters WHERE name IN ('CONFIG_PARAM1', 'CONFIG_PARAM2', 'CONFIG_PARAM3', 'FLASH_PAGE_CRC32');
 -- Insert example application parameters config stored in flash addresses
-INSERT OR IGNORE INTO mcu_parameters (name, address, size, count, fk_type, fk_quantity, fk_unit, description) VALUES
+INSERT OR IGNORE INTO parameters (name, address, size, count, fk_type, fk_quantity, fk_unit, description) VALUES
 ('CONFIG_PARAM1', '0x08003000'::INT, 4, 1, (SELECT id FROM types WHERE type_name='u32'), (SELECT id FROM quantities WHERE quantity_name='count'), (SELECT id FROM units WHERE unit_symbol=''), 'Configuration parameter 1 stored in flash'),
 ('CONFIG_PARAM2', '0x08003004'::INT, 4, 1, (SELECT id FROM types WHERE type_name='f32'), (SELECT id FROM quantities WHERE quantity_name='data_size'), (SELECT id FROM units WHERE unit_symbol=''), 'Configuration parameter 2 stored in flash'),
 ('CONFIG_PARAM3', '0x08003008'::INT, 4, 1, (SELECT id FROM types WHERE type_name='i16'), (SELECT id FROM quantities WHERE quantity_name='velocity'), (SELECT id FROM units WHERE unit_symbol='rpm'), 'Configuration parameter 3 stored in flash');
 
 --- Insert CRC32 checksum at the end of the 2kB flash page for integrity verification, the sum need 64bit space, but we can store it as uint32_t and calculate the checksum in a way that it fits in 32 bits (e.g. by using a specific polynomial and initial value)
 --- Base address of the page is 0x08003000, so the checksum will be stored at 0x080037FC, which is the last 4 bytes of the 2kB page (0x08003000 + 2048 - 4)
-INSERT OR IGNORE INTO mcu_parameters (name, address, size, count, fk_type, fk_quantity, fk_unit, description) VALUES
+INSERT OR IGNORE INTO parameters (name, address, size, count, fk_type, fk_quantity, fk_unit, description) VALUES
 ('FLASH_PAGE_CRC32', '0x080037FC'::INT, 4, 1, (SELECT id FROM types WHERE type_name='u32'), (SELECT id FROM quantities WHERE quantity_name='checksum'), (SELECT id FROM units WHERE unit_symbol=''), 'CRC32 checksum of the flash page for integrity verification');

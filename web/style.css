@@ -436,7 +436,7 @@ button.danger:hover {
 
 #parameterList {
     margin-top: 15px;
-    max-height: 300px;
+    max-height: 500px;
     overflow-y: auto;
 }
 
@@ -456,6 +456,25 @@ button.danger:hover {
 .parameter-item strong {
     display: block;
     margin-bottom: 4px;
+}
+
+/* Parameter table styles */
+.parameter-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.parameter-row td {
+    padding: 8px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.parameter-row:hover {
+    background-color: #e3f2fd !important;
+}
+
+.parameter-row:nth-child(even) {
+    background-color: #fafafa;
 }
 
 .selection-mode {
