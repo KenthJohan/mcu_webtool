@@ -62,6 +62,19 @@ class FlashPageGridCanvas {
         this.isDragging = false;
         this.hoveredParameter = null;
 
+        // Camera state
+        this.cameraZoom = 1.0;
+        this.cameraOffsetX = 0;
+        this.cameraOffsetY = 0;
+        this.isPanning = false;
+        this.panStartX = 0;
+        this.panStartY = 0;
+        this.lastPanX = 0;
+        this.lastPanY = 0;
+        this.MIN_ZOOM = 0.25;
+        this.MAX_ZOOM = 4.0;
+        this.ZOOM_SENSITIVITY = 0.001;
+
         // Parameter dragging state
         this.isDraggingParameter = false;
         this.draggedParameter = null;
@@ -81,6 +94,7 @@ class FlashPageGridCanvas {
         this.handleMouseDown = this.handleMouseDown.bind(this);
         this.handleMouseMove = this.handleMouseMove.bind(this);
         this.handleMouseUp = this.handleMouseUp.bind(this);
+        this.handleWheel = this.handleWheel.bind(this);
 
         // Setup event listeners
         this.setupEventListeners();
@@ -234,6 +248,21 @@ class FlashPageGridCanvas {
         this.canvas.addEventListener('mousedown', this.handleMouseDown);
         this.canvas.addEventListener('mousemove', this.handleMouseMove);
         this.canvas.addEventListener('mouseup', this.handleMouseUp);
+        this.canvas.addEventListener('wheel', this.handleWheel, { passive: false });
+        // Handle mouse leaving canvas
+        this.canvas.addEventListener('mouseleave', () => {
+            this.isPanning = false;
+        });
+    }
+
+    /**
+     * Convert screen coordinates to world coordinates
+     */
+    screenToWorld(screenX, screenY) {
+        return {
+            x: (screenX - this.cameraOffsetX) / this.cameraZoom,
+            y: (screenY - this.cameraOffsetY) / this.cameraZoom
+        };
     }
 
     /**
@@ -241,8 +270,13 @@ class FlashPageGridCanvas {
      */
     getCellFromMouse(event) {
         const rect = this.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left - this.LEFT_MARGIN;
-        const y = event.clientY - rect.top;
+        const screenX = event.clientX - rect.left;
+        const screenY = event.clientY - rect.top;
+        
+        // Convert to world coordinates
+        const world = this.screenToWorld(screenX, screenY);
+        const x = world.x - this.LEFT_MARGIN;
+        const y = world.y;
 
         const col = Math.floor(x / this.CELL_SIZE);
         const row = Math.floor(y / this.CELL_SIZE);
@@ -326,7 +360,16 @@ class FlashPageGridCanvas {
      * Draw the grid
      */
     drawGrid() {
+        // Clear entire canvas
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Apply camera transform
+        this.ctx.setTransform(
+            this.cameraZoom, 0,
+            0, this.cameraZoom,
+            this.cameraOffsetX, this.cameraOffsetY
+        );
 
         // Draw row addresses on the left
         this.ctx.fillStyle = '#000000';
@@ -490,6 +533,18 @@ class FlashPageGridCanvas {
      * Handle mouse down event
      */
     handleMouseDown(event) {
+        // Handle panning with middle mouse button or shift+left click
+        if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
+            event.preventDefault();
+            this.isPanning = true;
+            this.panStartX = event.clientX;
+            this.panStartY = event.clientY;
+            this.lastPanX = this.cameraOffsetX;
+            this.lastPanY = this.cameraOffsetY;
+            this.canvas.style.cursor = 'grab';
+            return;
+        }
+
         const cell = this.getCellFromMouse(event);
         if (!cell) return;
 
@@ -518,6 +573,16 @@ class FlashPageGridCanvas {
      * Handle mouse move event
      */
     handleMouseMove(event) {
+        // Handle panning
+        if (this.isPanning) {
+            const deltaX = event.clientX - this.panStartX;
+            const deltaY = event.clientY - this.panStartY;
+            this.cameraOffsetX = this.lastPanX + deltaX;
+            this.cameraOffsetY = this.lastPanY + deltaY;
+            this.drawGrid();
+            return;
+        }
+
         const cell = this.getCellFromMouse(event);
         if (!cell) return;
 
@@ -588,6 +653,13 @@ class FlashPageGridCanvas {
      * Handle mouse up event
      */
     handleMouseUp(event) {
+        // Handle pan end
+        if (this.isPanning) {
+            this.isPanning = false;
+            this.canvas.style.cursor = this.selectionMode ? 'crosshair' : 'pointer';
+            return;
+        }
+
         if (this.selectionMode && this.isDragging) {
             this.isDragging = false;
             return;
@@ -625,6 +697,63 @@ class FlashPageGridCanvas {
             this.canvas.style.cursor = 'pointer';
             this.drawGrid();
         }
+    }
+
+    /**
+     * Handle mouse wheel event for zooming
+     */
+    handleWheel(event) {
+        event.preventDefault();
+        
+        const rect = this.canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        
+        // Get world position before zoom
+        const worldBeforeZoom = this.screenToWorld(mouseX, mouseY);
+        
+        // Update zoom level
+        const zoomAmount = -event.deltaY * this.ZOOM_SENSITIVITY;
+        const newZoom = this.cameraZoom * Math.exp(zoomAmount);
+        this.cameraZoom = Math.max(this.MIN_ZOOM, Math.min(this.MAX_ZOOM, newZoom));
+        
+        // Get world position after zoom
+        const worldAfterZoom = this.screenToWorld(mouseX, mouseY);
+        
+        // Adjust camera offset to keep mouse position steady
+        this.cameraOffsetX += (worldAfterZoom.x - worldBeforeZoom.x) * this.cameraZoom;
+        this.cameraOffsetY += (worldAfterZoom.y - worldBeforeZoom.y) * this.cameraZoom;
+        
+        this.drawGrid();
+    }
+
+    /**
+     * Reset camera to default view
+     */
+    resetCamera() {
+        this.cameraZoom = 1.0;
+        this.cameraOffsetX = 0;
+        this.cameraOffsetY = 0;
+        this.drawGrid();
+    }
+
+    /**
+     * Zoom to fit all content
+     */
+    zoomToFit() {
+        const contentWidth = this.LEFT_MARGIN + (this.COLS * this.CELL_SIZE);
+        const contentHeight = this.ROWS * this.CELL_SIZE;
+        
+        const zoomX = this.canvas.width / contentWidth;
+        const zoomY = this.canvas.height / contentHeight;
+        
+        this.cameraZoom = Math.min(zoomX, zoomY, this.MAX_ZOOM) * 0.95; // 95% to add padding
+        
+        // Center the content
+        this.cameraOffsetX = (this.canvas.width - contentWidth * this.cameraZoom) / 2;
+        this.cameraOffsetY = (this.canvas.height - contentHeight * this.cameraZoom) / 2;
+        
+        this.drawGrid();
     }
 
     /**
