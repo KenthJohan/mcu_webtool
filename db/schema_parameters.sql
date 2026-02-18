@@ -46,4 +46,4 @@ INSERT OR IGNORE INTO parameters (name, address, alignment, bitsize, count, fk_t
 
 -- Insert example application parameters config stored in flash addresses
 INSERT OR IGNORE INTO parameters (name, address, alignment, bitsize, shiftleft, count, fk_type, fk_quantity, fk_unit, description) VALUES
-('CONFIG_PARAM1_ALIGN4_BIT3', '0x080030A0'::INT, 4, 1, 3, 1, (SELECT id FROM types WHERE type_name='u32'), (SELECT id FROM quantities WHERE quantity_name='flag'), (SELECT id FROM units WHERE unit_symbol=''), 'Configuration parameter 1 stored in flash');
+('CONFIG_PARAM1_ALIGN4_BIT3', '0x080030A0'::INT, 4, 22, 3, 1, (SELECT id FROM types WHERE type_name='u32'), (SELECT id FROM quantities WHERE quantity_name='flag'), (SELECT id FROM units WHERE unit_symbol=''), 'Configuration parameter 1 stored in flash');

@@ -79,7 +79,10 @@ class FlashPageGridCanvas {
         this.isDraggingParameter = false;
         this.draggedParameter = null;
         this.draggedParameterOriginalOffset = null;
+        this.draggedParameterOriginalShiftleft = null;
         this.dragCurrentCell = null;
+        this.draggedParameterNewShiftleft = null; // Calculated shiftleft during drag
+        this.draggedParameterClickOffsetBits = null; // Bit offset within parameter where user clicked
 
         // Track parameters with unsaved changes
         this.modifiedParameters = new Map(); // paramId -> {originalOffset, originalAddress}
@@ -266,7 +269,7 @@ class FlashPageGridCanvas {
     }
 
     /**
-     * Get cell coordinates from mouse position
+     * Get cell coordinates and bit position from mouse position
      */
     getCellFromMouse(event) {
         const rect = this.canvas.getBoundingClientRect();
@@ -282,7 +285,12 @@ class FlashPageGridCanvas {
         const row = Math.floor(y / this.CELL_SIZE);
 
         if (row >= 0 && row < this.ROWS && col >= 0 && col < this.COLS) {
-            return { row, col };
+            // Calculate bit position within the cell (0-7, where 7 is leftmost MSB, 0 is rightmost LSB)
+            const xInCell = x - col * this.CELL_SIZE;
+            const bitWidth = this.CELL_SIZE / 8;
+            const bitPos = 7 - Math.floor(xInCell / bitWidth); // 7=MSB (left) to 0=LSB (right)
+            
+            return { row, col, bit: bitPos };
         }
         return null;
     }
@@ -302,6 +310,35 @@ class FlashPageGridCanvas {
             row: Math.floor(offset / this.COLS),
             col: offset % this.COLS
         };
+    }
+
+    /**
+     * Check if a specific bit at a byte offset is within a parameter
+     * @param {number} byteOffset - The byte offset in the page
+     * @param {number} bitInByte - The bit position within the byte (0-7, where 7=MSB, 0=LSB)
+     * @param {object} param - The parameter to check
+     * @returns {boolean} - True if the bit is within the parameter
+     */
+    isBitInParameter(byteOffset, bitInByte, param) {
+        const paramOffset = param.address & this.PAGE_MASK;
+        const alignment = param.alignment || 1;
+        const shiftleft = param.shiftleft || 0;
+        const bitsize = param.bitsize || 0;
+
+        if (bitsize === 0) return false;
+
+        // Check if byte is within the alignment block
+        if (byteOffset < paramOffset || byteOffset >= paramOffset + alignment) {
+            return false;
+        }
+
+        // Calculate which bit position this represents in the alignment block
+        const byteIndexInBlock = byteOffset - paramOffset;
+        // For little-endian: byte 0 is rightmost (contains bits 0-7), byte alignment-1 is leftmost
+        const bitIndexInBlock = (alignment - 1 - byteIndexInBlock) * 8 + bitInByte;
+
+        // Check if this bit is within the parameter's bit range [shiftleft : shiftleft + bitsize - 1]
+        return bitIndexInBlock >= shiftleft && bitIndexInBlock < shiftleft + bitsize;
     }
 
     /**
@@ -436,37 +473,10 @@ class FlashPageGridCanvas {
                 const y = row * this.CELL_SIZE;
                 const offset = this.cellToOffset(row, col);
 
-                // Determine cell color
+                // Determine cell color (white background by default)
                 let fillColor = '#ffffff';
-                let isPartOfParam = false;
-                let overlappingParams = [];
 
-                // Check if cell is part of a parameter (check ALL parameters for overlaps)
-                for (let i = 0; i < this.parameters.length; i++) {
-                    const param = this.parameters[i];
-                    const visualOffset = this.getVisualRenderOffset(param);
-                    if (offset >= visualOffset.startOffset && offset <= visualOffset.endOffset) {
-                        overlappingParams.push({ param, index: i });
-                        isPartOfParam = true;
-                    }
-                }
-
-                // Determine fill color based on overlap detection
-                if (overlappingParams.length > 1) {
-                    // Multiple parameters overlap - highlight in red
-                    fillColor = '#ff0000';
-                } else if (overlappingParams.length === 1) {
-                    // Single parameter - use its color
-                    const { param, index } = overlappingParams[0];
-                    fillColor = this.PARAM_COLORS[index % this.PARAM_COLORS.length];
-
-                    // Highlight if hovered
-                    if (this.hoveredParameter && this.hoveredParameter.id === param.id) {
-                        fillColor = '#ffeb3b';
-                    }
-                }
-
-                // Current selection
+                // Current selection (only color cells for selection mode)
                 if (this.selectionMode && this.selectionStart && this.selectionEnd) {
                     const startOffset = this.cellToOffset(this.selectionStart.row, this.selectionStart.col);
                     const endOffset = this.cellToOffset(this.selectionEnd.row, this.selectionEnd.col);
@@ -475,29 +485,6 @@ class FlashPageGridCanvas {
 
                     if (offset >= minOffset && offset <= maxOffset) {
                         fillColor = '#2196F3';
-                    }
-                }
-
-                // Show dragged parameter at new position (with alignment applied)
-                if (this.isDraggingParameter && this.draggedParameter && this.dragCurrentCell) {
-                    const rawOffset = this.cellToOffset(this.dragCurrentCell.row, this.dragCurrentCell.col);
-                    const alignment = this.draggedParameter.alignment || 1;
-                    const totalSizeBytes = Math.ceil(this.draggedParameter.bitsize / 8) * this.draggedParameter.count;
-                    const alignedOffset = this.snapToAlignment(rawOffset, alignment, totalSizeBytes);
-                    const shiftleft = this.draggedParameter.shiftleft || 0;
-
-                    // Calculate visual rendering position using shiftleft (little-endian)
-                    const startBit = shiftleft;
-                    const endBit = shiftleft + this.draggedParameter.bitsize - 1;
-                    const startByteFromLeft = Math.floor(startBit / 8);
-                    const endByteFromLeft = Math.floor(endBit / 8);
-                    const startByteOffset = (alignment - 1) - startByteFromLeft;
-                    const endByteOffset = (alignment - 1) - endByteFromLeft;
-                    const visualStartOffset = alignedOffset + Math.min(startByteOffset, endByteOffset);
-                    const visualEndOffset = alignedOffset + Math.max(startByteOffset, endByteOffset);
-
-                    if (offset >= visualStartOffset && offset <= visualEndOffset) {
-                        fillColor = '#4CAF50'; // Green for new position
                     }
                 }
 
@@ -512,14 +499,12 @@ class FlashPageGridCanvas {
             }
         }
 
-        // Draw bit-level highlighting for parameters (when zoomed in)
-        if (this.cameraZoom >= 2.0) {
-            this.drawParameterBitHighlights();
-            
-            // Also draw bit highlighting for dragged parameter at new position
-            if (this.isDraggingParameter && this.draggedParameter && this.dragCurrentCell) {
-                this.drawDraggedParameterBitHighlight();
-            }
+        // Draw bit-level highlighting for parameters (always shown)
+        this.drawParameterBitHighlights();
+        
+        // Also draw bit highlighting for dragged parameter at new position
+        if (this.isDraggingParameter && this.draggedParameter && this.dragCurrentCell) {
+            this.drawDraggedParameterBitHighlight();
         }
 
         // Draw parameter IDs in the center of each parameter group
@@ -670,7 +655,8 @@ class FlashPageGridCanvas {
         const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
         const alignedOffset = this.snapToAlignment(rawOffset, alignment, totalSizeBytes);
         
-        const shiftleft = param.shiftleft || 0;
+        // Use the calculated new shiftleft if available, otherwise use current
+        const shiftleft = this.draggedParameterNewShiftleft !== null ? this.draggedParameterNewShiftleft : (param.shiftleft || 0);
         const bitsize = param.bitsize || 0;
 
         if (bitsize === 0) return;
@@ -863,7 +849,24 @@ class FlashPageGridCanvas {
             this.isDraggingParameter = true;
             this.draggedParameter = this.hoveredParameter;
             this.draggedParameterOriginalOffset = this.draggedParameter.address & this.PAGE_MASK;
+            this.draggedParameterOriginalShiftleft = this.draggedParameter.shiftleft || 0;
             this.dragCurrentCell = cell;
+            this.draggedParameterNewShiftleft = null;
+            
+            // Calculate which bit within the parameter was clicked
+            const clickOffset = this.cellToOffset(cell.row, cell.col);
+            const paramOffset = this.draggedParameter.address & this.PAGE_MASK;
+            const alignment = this.draggedParameter.alignment || 1;
+            const shiftleft = this.draggedParameter.shiftleft || 0;
+            const bitInByte = cell.bit !== undefined ? cell.bit : 0;
+            
+            // Calculate bit index in alignment block
+            const byteIndexInBlock = clickOffset - paramOffset;
+            const bitIndexInBlock = (alignment - 1 - byteIndexInBlock) * 8 + bitInByte;
+            
+            // Calculate bit position within parameter (0 to bitsize-1)
+            this.draggedParameterClickOffsetBits = bitIndexInBlock - shiftleft;
+            
             this.canvas.style.cursor = 'grabbing';
             this.drawGrid();
         }
@@ -894,15 +897,30 @@ class FlashPageGridCanvas {
             const paramSizeBytes = Math.ceil(this.draggedParameter.bitsize / 8) * this.draggedParameter.count;
             const alignedOffset = this.snapToAlignment(rawOffset, alignment, paramSizeBytes);
             const alignedAddress = this.PAGE_BASE_ADDRESS + alignedOffset;
-            const shiftleft = this.draggedParameter.shiftleft || 0;
+            
+            // Calculate bit position under mouse
+            const bitInByte = cell.bit !== undefined ? cell.bit : 0;
+            const byteOffsetInBlock = rawOffset - alignedOffset;
+            // Calculate bit index in the alignment block (little-endian)
+            const mouseBitIndexInBlock = (alignment - 1 - byteOffsetInBlock) * 8 + bitInByte;
+            
+            // Calculate new shiftleft by subtracting the click offset
+            // This makes the parameter follow the mouse naturally
+            const clickOffsetBits = this.draggedParameterClickOffsetBits !== null ? this.draggedParameterClickOffsetBits : 0;
+            const newShiftleft = mouseBitIndexInBlock - clickOffsetBits;
+            
+            // Clamp shiftleft to valid range for this alignment
+            const maxShiftleft = alignment * 8 - this.draggedParameter.bitsize;
+            const clampedShiftleft = Math.max(0, Math.min(newShiftleft, maxShiftleft));
+            this.draggedParameterNewShiftleft = clampedShiftleft;
 
             const snapWarning = (rawOffset !== alignedOffset) 
                 ? `<br><span style="color: #ff9800;">⚠ Will snap to ${alignment}-byte alignment boundary</span>` 
                 : '';
             
-            const bitInfo = shiftleft > 0
-                ? `<br><span style="color: #00bcd4;">ℹ Bit offset: ${shiftleft} within alignment block</span>`
-                : '';
+            const bitRangeStart = clampedShiftleft;
+            const bitRangeEnd = clampedShiftleft + this.draggedParameter.bitsize - 1;
+            const bitInfo = `<br><span style="color: #00bcd4;">🎯 New bit position: [${bitRangeStart}:${bitRangeEnd}] within ${alignment}-byte block</span>`;
 
             document.getElementById('cellInfo').innerHTML = `
                 <strong>Moving: ${this.draggedParameter.name}</strong><br>
@@ -921,13 +939,14 @@ class FlashPageGridCanvas {
             this.updateSelectionInfo();
             this.drawGrid();
         } else if (!this.selectionMode) {
-            // Handle hover to show parameter info
+            // Handle hover to show parameter info (bit-level precision)
             const offset = this.cellToOffset(cell.row, cell.col);
+            const bitInByte = cell.bit !== undefined ? cell.bit : 0;
             let foundParam = null;
 
+            // Check if the specific bit is within any parameter
             for (const param of this.parameters) {
-                const visualOffset = this.getVisualRenderOffset(param);
-                if (offset >= visualOffset.startOffset && offset <= visualOffset.endOffset) {
+                if (this.isBitInParameter(offset, bitInByte, param)) {
                     foundParam = param;
                     break;
                 }
@@ -941,9 +960,15 @@ class FlashPageGridCanvas {
                     const totalSizeBytes = Math.ceil(foundParam.bitsize / 8) * foundParam.count;
                     const alignment = foundParam.alignment || 1;
                     const shiftleft = foundParam.shiftleft || 0;
-                    const bitInfo = shiftleft > 0 
-                        ? `<br><small style="color: #666;">Bit offset: ${shiftleft} (within ${alignment}-byte block)</small>` 
-                        : '';
+                    
+                    // Calculate the bit position within the parameter
+                    const byteIndexInBlock = offset - foundParamOffset;
+                    const bitIndexInBlock = (alignment - 1 - byteIndexInBlock) * 8 + bitInByte;
+                    const bitPosInParam = bitIndexInBlock - shiftleft;
+                    
+                    const bitInfo = `<br><small style="color: #2196F3;">🔍 Hovering: Bit ${bitInByte} @ byte offset ${offset} → Parameter bit [${bitPosInParam}/${foundParam.bitsize - 1}]</small>
+                        <br><small style="color: #666;">Bit range in ${alignment}-byte block: [${shiftleft}:${shiftleft + foundParam.bitsize - 1}]</small>`;
+                    
                     document.getElementById('cellInfo').innerHTML = `
                         <strong>${foundParam.name}</strong><br>
                         Type: ${foundParam.type_name || 'N/A'} | 
@@ -959,7 +984,8 @@ class FlashPageGridCanvas {
                     document.getElementById('cellInfo').innerHTML = `
                         Offset: ${offset} (0x${offset.toString(16).toUpperCase().padStart(4, '0')})<br>
                         Address: <span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span><br>
-                        <em>No parameter at this location</em>
+                        Bit ${bitInByte} (${bitInByte === 7 ? 'MSB' : bitInByte === 0 ? 'LSB' : `bit ${bitInByte}`})<br>
+                        <em>No parameter at this bit</em>
                     `;
                 }
             }
@@ -989,19 +1015,24 @@ class FlashPageGridCanvas {
             const paramSizeBytes = Math.ceil(this.draggedParameter.bitsize / 8) * this.draggedParameter.count;
             const newOffset = this.snapToAlignment(rawOffset, alignment, paramSizeBytes);
             const newAddress = this.PAGE_BASE_ADDRESS + newOffset;
+            const newShiftleft = this.draggedParameterNewShiftleft !== null ? this.draggedParameterNewShiftleft : (this.draggedParameter.shiftleft || 0);
 
-            // Check if position actually changed
-            if (newOffset !== this.draggedParameterOriginalOffset) {
+            // Check if position or shiftleft actually changed
+            const positionChanged = newOffset !== this.draggedParameterOriginalOffset || newShiftleft !== this.draggedParameterOriginalShiftleft;
+            
+            if (positionChanged) {
                 // Track original values if this is the first modification
                 if (!this.modifiedParameters.has(this.draggedParameter.id)) {
                     this.modifiedParameters.set(this.draggedParameter.id, {
                         originalOffset: this.draggedParameterOriginalOffset,
-                        originalAddress: this.draggedParameter.address
+                        originalAddress: this.draggedParameter.address,
+                        originalShiftleft: this.draggedParameterOriginalShiftleft
                     });
                 }
 
-                // Update parameter address locally
+                // Update parameter address and shiftleft locally
                 this.draggedParameter.address = newAddress;
+                this.draggedParameter.shiftleft = newShiftleft;
 
                 // Update display to show unsaved changes
                 this.displayParameters();
@@ -1012,6 +1043,9 @@ class FlashPageGridCanvas {
             this.isDraggingParameter = false;
             this.draggedParameter = null;
             this.draggedParameterOriginalOffset = null;
+            this.draggedParameterOriginalShiftleft = null;
+            this.draggedParameterNewShiftleft = null;
+            this.draggedParameterClickOffsetBits = null;
             this.dragCurrentCell = null;
             this.canvas.style.cursor = 'pointer';
             this.drawGrid();
@@ -1327,7 +1361,8 @@ class FlashPageGridCanvas {
             if (this.modifiedParameters.has(param.id)) {
                 updates.push({
                     id: param.id,
-                    address: param.address
+                    address: param.address,
+                    shiftleft: param.shiftleft
                 });
             }
         });
@@ -1375,6 +1410,9 @@ class FlashPageGridCanvas {
             if (this.modifiedParameters.has(param.id)) {
                 const original = this.modifiedParameters.get(param.id);
                 param.address = original.originalAddress;
+                if (original.originalShiftleft !== undefined) {
+                    param.shiftleft = original.originalShiftleft;
+                }
             }
         });
 
