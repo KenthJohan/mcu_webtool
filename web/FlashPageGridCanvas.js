@@ -450,7 +450,7 @@ class FlashPageGridCanvas {
 
                 // Draw cell border
                 this.ctx.strokeStyle = '#dbdbdb';
-                this.ctx.lineWidth = this.LINE_WIDTH;
+                this.ctx.lineWidth = 2 / this.cameraZoom;
                 this.ctx.strokeRect(x, y, this.CELL_SIZE, this.CELL_SIZE);
             }
         }
@@ -511,7 +511,7 @@ class FlashPageGridCanvas {
         const bitsPerGroup = alignmentBytes * 8; // Total bits across the alignment group
         
         this.ctx.strokeStyle = 'rgba(100, 100, 100, 0.3)';
-        this.ctx.lineWidth = 0.5;
+        this.ctx.lineWidth = 2 / this.cameraZoom;
 
         for (let row = 0; row < this.ROWS; row++) {
             for (let col = 0; col < this.COLS; col++) {
@@ -558,7 +558,7 @@ class FlashPageGridCanvas {
      */
     drawAlignmentGrid() {
         this.ctx.strokeStyle = 'rgba(200, 0, 170, 0.5)';
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = 2 / this.cameraZoom;
         this.ctx.setLineDash([5, 3]);
 
         // Draw vertical alignment lines
