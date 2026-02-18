@@ -35,6 +35,7 @@ class FlashPageGridCanvas {
 
         // Total page size constraint
         this.PAGE_SIZE = 2048;
+        this.PAGE_MASK = this.PAGE_SIZE - 1; // 0x7FF for 2048 byte page
 
         // Grid configuration
         this.COLS = config.cols || 32;
@@ -306,8 +307,8 @@ class FlashPageGridCanvas {
     // Draw border around parameter group
     drawParameterBorder(param, color) {
         const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
-        const startOffset = param.offset;
-        const endOffset = param.offset + totalSizeBytes - 1;
+        const startOffset = param.address & this.PAGE_MASK;
+        const endOffset = startOffset + totalSizeBytes - 1;
 
         this.ctx.strokeStyle = color;
         // Scale border width inversely with zoom to maintain consistent visual thickness
@@ -399,7 +400,8 @@ class FlashPageGridCanvas {
                 for (let i = 0; i < this.parameters.length; i++) {
                     const param = this.parameters[i];
                     const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
-                    if (offset >= param.offset && offset < param.offset + totalSizeBytes) {
+                    const paramOffset = param.address & this.PAGE_MASK;
+                    if (offset >= paramOffset && offset < paramOffset + totalSizeBytes) {
                         overlappingParams.push({ param, index: i });
                         isPartOfParam = true;
                     }
@@ -456,8 +458,8 @@ class FlashPageGridCanvas {
         // Draw parameter IDs in the center of each parameter group
         this.parameters.forEach(param => {
             const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
-            const startOffset = param.offset;
-            const endOffset = param.offset + totalSizeBytes - 1;
+            const startOffset = param.address & this.PAGE_MASK;
+            const endOffset = startOffset + totalSizeBytes - 1;
 
             // Calculate center offset
             const centerOffset = startOffset + Math.floor(totalSizeBytes / 2);
@@ -493,30 +495,43 @@ class FlashPageGridCanvas {
         }
 
         // Draw bit grid when zoomed in close
-        if (this.cameraZoom >= 2.0) {
+        if (this.cameraZoom >= 8.0) {
             this.drawBitGrid();
         }
     }
 
     /**
-     * Draw bit grid within each byte cell when zoomed in
+     * Draw bit grid within byte cells when zoomed in
+     * Number of bits shown depends on ALIGNMENT_GRID
+     * For ALIGNMENT_GRID > 1, the bit grid spans multiple cells
      */
     drawBitGrid() {
+        // Determine alignment (default to 1 byte if not set)
+        const alignmentBytes = this.ALIGNMENT_GRID > 0 ? this.ALIGNMENT_GRID : 1;
+        const bitsPerGroup = alignmentBytes * 8; // Total bits across the alignment group
+        
         this.ctx.strokeStyle = 'rgba(100, 100, 100, 0.3)';
         this.ctx.lineWidth = 0.5;
 
         for (let row = 0; row < this.ROWS; row++) {
             for (let col = 0; col < this.COLS; col++) {
-                const cellX = this.LEFT_MARGIN + col * this.CELL_SIZE;
-                const cellY = row * this.CELL_SIZE;
-                const bitWidth = this.CELL_SIZE / 8;
+                const offset = this.cellToOffset(row, col);
+                
+                // Only draw bit grid at alignment boundaries
+                if (offset % alignmentBytes !== 0) continue;
+                
+                // Calculate the span of cells for this alignment group
+                const groupStartX = this.LEFT_MARGIN + col * this.CELL_SIZE;
+                const groupY = row * this.CELL_SIZE;
+                const groupWidth = alignmentBytes * this.CELL_SIZE;
+                const bitWidth = groupWidth / bitsPerGroup;
 
-                // Draw vertical lines to separate bits
-                for (let bit = 1; bit < 8; bit++) {
-                    const x = cellX + bit * bitWidth;
+                // Draw vertical lines to separate bits across the group
+                for (let bit = 1; bit < bitsPerGroup; bit++) {
+                    const x = groupStartX + bit * bitWidth;
                     this.ctx.beginPath();
-                    this.ctx.moveTo(x, cellY);
-                    this.ctx.lineTo(x, cellY + this.CELL_SIZE);
+                    this.ctx.moveTo(x, groupY);
+                    this.ctx.lineTo(x, groupY + this.CELL_SIZE);
                     this.ctx.stroke();
                 }
 
@@ -527,11 +542,11 @@ class FlashPageGridCanvas {
                     this.ctx.textAlign = 'center';
                     this.ctx.textBaseline = 'middle';
 
-                    for (let bit = 0; bit < 8; bit++) {
-                        const bitX = cellX + bit * bitWidth + bitWidth / 2;
-                        const bitY = cellY + this.CELL_SIZE / 2;
-                        // Draw bit numbers from 7 to 0 (MSB to LSB, left to right)
-                        this.ctx.fillText((7 - bit).toString(), bitX, bitY);
+                    for (let bit = 0; bit < bitsPerGroup; bit++) {
+                        const bitX = groupStartX + bit * bitWidth + bitWidth / 2;
+                        const bitY = groupY + this.CELL_SIZE / 2;
+                        // Draw bit numbers from (bitsPerGroup-1) to 0 (MSB to LSB, left to right)
+                        this.ctx.fillText((bitsPerGroup - 1 - bit).toString(), bitX, bitY);
                     }
                 }
             }
@@ -607,7 +622,7 @@ class FlashPageGridCanvas {
         if (!this.selectionMode && this.hoveredParameter) {
             this.isDraggingParameter = true;
             this.draggedParameter = this.hoveredParameter;
-            this.draggedParameterOriginalOffset = this.draggedParameter.offset;
+            this.draggedParameterOriginalOffset = this.draggedParameter.address & this.PAGE_MASK;
             this.dragCurrentCell = cell;
             this.canvas.style.cursor = 'grabbing';
             this.drawGrid();
@@ -659,7 +674,8 @@ class FlashPageGridCanvas {
 
             for (const param of this.parameters) {
                 const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
-                if (offset >= param.offset && offset < param.offset + totalSizeBytes) {
+                const paramOffset = param.address & this.PAGE_MASK;
+                if (offset >= paramOffset && offset < paramOffset + totalSizeBytes) {
                     foundParam = param;
                     break;
                 }
@@ -669,14 +685,14 @@ class FlashPageGridCanvas {
                 if (foundParam) {
                     this.highlightParameter(foundParam.id);
                     const address = this.PAGE_BASE_ADDRESS + offset;
-                    const relativeOffset = offset - foundParam.offset;
+                    const foundParamOffset = foundParam.address & this.PAGE_MASK;
                     const totalSizeBytes = Math.ceil(foundParam.bitsize / 8) * foundParam.count;
                     document.getElementById('cellInfo').innerHTML = `
                         <strong>${foundParam.name}</strong><br>
                         Type: ${foundParam.type_name || 'N/A'} | 
                         Size: ${foundParam.bitsize} bits × ${foundParam.count}<br>
                         Address: <span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span> 
-                        (offset: ${foundParam.offset}-${foundParam.offset + totalSizeBytes - 1})<br>
+                        (offset: ${foundParamOffset}-${foundParamOffset + totalSizeBytes - 1})<br>
                         ${foundParam.quantity_name ? 'Quantity: ' + foundParam.quantity_name : ''} 
                         ${foundParam.unit_symbol ? '(' + foundParam.unit_symbol + ')' : ''}<br>
                         ${foundParam.description || ''}
@@ -725,8 +741,7 @@ class FlashPageGridCanvas {
                     });
                 }
 
-                // Update parameter offset and address locally
-                this.draggedParameter.offset = newOffset;
+                // Update parameter address locally
                 this.draggedParameter.address = newAddress;
 
                 // Update display to show unsaved changes
@@ -878,11 +893,6 @@ class FlashPageGridCanvas {
 
                     this.parameters = data.data
                         .filter(p => p.address >= page_base && p.address < page_base + page_size)
-                        .map(p => {
-                            // Calculate offset
-                            p.offset = p.address - page_base;
-                            return p;
-                        })
                         .sort((a, b) => a.address - b.address);
 
                     // Fetch additional data (types, quantities, units) for each parameter
@@ -929,7 +939,8 @@ class FlashPageGridCanvas {
 
         const tableRows = this.parameters.map((param, index) => {
             const color = this.PARAM_COLORS[index % this.PARAM_COLORS.length];
-            const address = this.PAGE_BASE_ADDRESS + param.offset;
+            const address = param.address;
+            const totalSizeBits = param.bitsize * param.count;
             const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
             const isModified = this.modifiedParameters.has(param.id);
             const modifiedStyle = isModified ? 'background-color: #fff3cd;' : '';
@@ -941,8 +952,7 @@ class FlashPageGridCanvas {
                     onmouseout="gridCanvas.unhighlightParameter()">
                     <td style="font-weight: bold;">${param.name}${modifiedBadge}</td>
                     <td><span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span></td>
-                    <td>${param.offset}-${param.offset + totalSizeBytes - 1}</td>
-                    <td>${totalSizeBytes}</td>
+                    <td>${totalSizeBits}</td>
                     <td>${param.type_name || 'N/A'} × ${param.count}</td>
                     <td>${param.unit_symbol || '-'}</td>
                 </tr>
@@ -955,8 +965,7 @@ class FlashPageGridCanvas {
                     <tr style="background-color: #f0f0f0; border-bottom: 2px solid #333;">
                         <th style="padding: 8px; text-align: left;">Name</th>
                         <th style="padding: 8px; text-align: left;">Address</th>
-                        <th style="padding: 8px; text-align: left;">Offset</th>
-                        <th style="padding: 8px; text-align: left;">Size (B)</th>
+                        <th style="padding: 8px; text-align: left;">bitsize</th>
                         <th style="padding: 8px; text-align: left;">Type</th>
                         <th style="padding: 8px; text-align: left;">Unit</th>
                     </tr>
@@ -1098,7 +1107,6 @@ class FlashPageGridCanvas {
         this.parameters.forEach(param => {
             if (this.modifiedParameters.has(param.id)) {
                 const original = this.modifiedParameters.get(param.id);
-                param.offset = original.originalOffset;
                 param.address = original.originalAddress;
             }
         });

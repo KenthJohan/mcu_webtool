@@ -31,6 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_name ON parameters(name);
 
 -- Delete any existing parameters that conflict with the new configuration parameters we want to insert
 DELETE FROM parameters WHERE name IN ('CONFIG_PARAM1', 'CONFIG_PARAM2', 'CONFIG_PARAM3', 'FLASH_PAGE_CRC32');
+
 -- Insert example application parameters config stored in flash addresses
 INSERT OR IGNORE INTO parameters (name, address, bitsize, count, fk_type, fk_quantity, fk_unit, description) VALUES
 ('CONFIG_PARAM1', '0x08003000'::INT, 32, 1, (SELECT id FROM types WHERE type_name='u32'), (SELECT id FROM quantities WHERE quantity_name='count'), (SELECT id FROM units WHERE unit_symbol=''), 'Configuration parameter 1 stored in flash'),
