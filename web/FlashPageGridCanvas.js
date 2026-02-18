@@ -304,11 +304,56 @@ class FlashPageGridCanvas {
         };
     }
 
+    /**
+     * Snap offset to alignment boundary
+     * Parameters are always positioned at the alignment boundary (left side)
+     * @param {number} offset - The offset to snap
+     * @param {number} alignment - The alignment requirement in bytes
+     * @param {number} paramSize - The size of the parameter in bytes (not used, kept for compatibility)
+     * @returns {number} - The snapped offset (always at alignment boundary)
+     */
+    snapToAlignment(offset, alignment, paramSize = 1) {
+        if (!alignment || alignment <= 1) return offset;
+        
+        // Always snap to the start of the alignment block
+        const blockStart = Math.floor(offset / alignment) * alignment;
+        return blockStart;
+    }
+
+    /**
+     * Get the visual rendering offset for a parameter
+     * Uses shiftleft to position the parameter within its alignment block
+     * @param {object} param - The parameter object
+     * @returns {object} - {startOffset, endOffset} for rendering
+     */
+    getVisualRenderOffset(param) {
+        const paramOffset = param.address & this.PAGE_MASK;
+        const alignment = param.alignment || 1;
+        const shiftleft = param.shiftleft || 0;
+        const bitsize = param.bitsize || 0;
+        
+        // Calculate the bit range within the alignment block: [shiftleft : shiftleft + bitsize - 1]
+        // Convert to byte offsets for grid rendering
+        const startBit = shiftleft;
+        const endBit = shiftleft + bitsize - 1;
+        
+        // Convert bit positions to byte offsets (little-endian: bit 0 is in the last byte)
+        const startByteFromLeft = Math.floor(startBit / 8);
+        const endByteFromLeft = Math.floor(endBit / 8);
+        const startByteOffset = (alignment - 1) - startByteFromLeft;
+        const endByteOffset = (alignment - 1) - endByteFromLeft;
+        
+        return {
+            startOffset: paramOffset + Math.min(startByteOffset, endByteOffset),
+            endOffset: paramOffset + Math.max(startByteOffset, endByteOffset)
+        };
+    }
+
     // Draw border around parameter group
     drawParameterBorder(param, color) {
-        const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
-        const startOffset = param.address & this.PAGE_MASK;
-        const endOffset = startOffset + totalSizeBytes - 1;
+        const visualOffset = this.getVisualRenderOffset(param);
+        const startOffset = visualOffset.startOffset;
+        const endOffset = visualOffset.endOffset;
 
         this.ctx.strokeStyle = color;
         // Scale border width inversely with zoom to maintain consistent visual thickness
@@ -399,9 +444,8 @@ class FlashPageGridCanvas {
                 // Check if cell is part of a parameter (check ALL parameters for overlaps)
                 for (let i = 0; i < this.parameters.length; i++) {
                     const param = this.parameters[i];
-                    const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
-                    const paramOffset = param.address & this.PAGE_MASK;
-                    if (offset >= paramOffset && offset < paramOffset + totalSizeBytes) {
+                    const visualOffset = this.getVisualRenderOffset(param);
+                    if (offset >= visualOffset.startOffset && offset <= visualOffset.endOffset) {
                         overlappingParams.push({ param, index: i });
                         isPartOfParam = true;
                     }
@@ -434,12 +478,25 @@ class FlashPageGridCanvas {
                     }
                 }
 
-                // Show dragged parameter at new position
+                // Show dragged parameter at new position (with alignment applied)
                 if (this.isDraggingParameter && this.draggedParameter && this.dragCurrentCell) {
-                    const newOffset = this.cellToOffset(this.dragCurrentCell.row, this.dragCurrentCell.col);
+                    const rawOffset = this.cellToOffset(this.dragCurrentCell.row, this.dragCurrentCell.col);
+                    const alignment = this.draggedParameter.alignment || 1;
                     const totalSizeBytes = Math.ceil(this.draggedParameter.bitsize / 8) * this.draggedParameter.count;
+                    const alignedOffset = this.snapToAlignment(rawOffset, alignment, totalSizeBytes);
+                    const shiftleft = this.draggedParameter.shiftleft || 0;
 
-                    if (offset >= newOffset && offset < newOffset + totalSizeBytes) {
+                    // Calculate visual rendering position using shiftleft (little-endian)
+                    const startBit = shiftleft;
+                    const endBit = shiftleft + this.draggedParameter.bitsize - 1;
+                    const startByteFromLeft = Math.floor(startBit / 8);
+                    const endByteFromLeft = Math.floor(endBit / 8);
+                    const startByteOffset = (alignment - 1) - startByteFromLeft;
+                    const endByteOffset = (alignment - 1) - endByteFromLeft;
+                    const visualStartOffset = alignedOffset + Math.min(startByteOffset, endByteOffset);
+                    const visualEndOffset = alignedOffset + Math.max(startByteOffset, endByteOffset);
+
+                    if (offset >= visualStartOffset && offset <= visualEndOffset) {
                         fillColor = '#4CAF50'; // Green for new position
                     }
                 }
@@ -455,11 +512,22 @@ class FlashPageGridCanvas {
             }
         }
 
+        // Draw bit-level highlighting for parameters (when zoomed in)
+        if (this.cameraZoom >= 2.0) {
+            this.drawParameterBitHighlights();
+            
+            // Also draw bit highlighting for dragged parameter at new position
+            if (this.isDraggingParameter && this.draggedParameter && this.dragCurrentCell) {
+                this.drawDraggedParameterBitHighlight();
+            }
+        }
+
         // Draw parameter IDs in the center of each parameter group
         this.parameters.forEach(param => {
-            const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
-            const startOffset = param.address & this.PAGE_MASK;
-            const endOffset = startOffset + totalSizeBytes - 1;
+            const visualOffset = this.getVisualRenderOffset(param);
+            const startOffset = visualOffset.startOffset;
+            const endOffset = visualOffset.endOffset;
+            const totalSizeBytes = endOffset - startOffset + 1;
 
             // Calculate center offset
             const centerOffset = startOffset + Math.floor(totalSizeBytes / 2);
@@ -497,6 +565,178 @@ class FlashPageGridCanvas {
         // Draw bit grid when zoomed in close
         if (this.cameraZoom >= 8.0) {
             this.drawBitGrid();
+        }
+    }
+
+    /**
+     * Draw bit-level highlighting for parameters
+     * Shows which specific bits within each byte are used by parameters
+     */
+    drawParameterBitHighlights() {
+        this.parameters.forEach((param, index) => {
+            const paramOffset = param.address & this.PAGE_MASK;
+            const shiftleft = param.shiftleft || 0;
+            const bitsize = param.bitsize || 0;
+            const alignment = param.alignment || 1;
+
+            if (bitsize === 0) return;
+
+            // Calculate which bits are used across the alignment block
+            const startBit = shiftleft;
+            const endBit = shiftleft + bitsize - 1;
+
+            // Determine which bytes are affected
+            // For little-endian with MSB-first display: bit 0 is in the rightmost byte
+            const startByteFromLeft = Math.floor(startBit / 8);
+            const endByteFromLeft = Math.floor(endBit / 8);
+            const startByte = (alignment - 1) - startByteFromLeft;
+            const endByte = (alignment - 1) - endByteFromLeft;
+
+            // Get parameter color
+            const color = this.PARAM_COLORS[index % this.PARAM_COLORS.length];
+            
+            // Draw bit highlighting for each affected byte
+            // Iterate from end byte to start byte since we reversed the calculation
+            for (let byteIndex = endByte; byteIndex <= startByte; byteIndex++) {
+                const byteOffset = paramOffset + byteIndex;
+                const cell = this.offsetToCell(byteOffset);
+
+                if (cell.row < 0 || cell.row >= this.ROWS || cell.col < 0 || cell.col >= this.COLS) {
+                    continue;
+                }
+
+                const cellX = this.LEFT_MARGIN + cell.col * this.CELL_SIZE;
+                const cellY = cell.row * this.CELL_SIZE;
+
+                // Calculate which bits in this byte are used
+                // Since we reversed byte indices, calculate bit range for little-endian layout
+                const byteStartBit = (alignment - 1 - byteIndex) * 8;
+                const byteEndBit = byteStartBit + 7;
+                
+                const usedStartBit = Math.max(startBit, byteStartBit);
+                const usedEndBit = Math.min(endBit, byteEndBit);
+                
+                const startBitInByte = usedStartBit - byteStartBit;
+                const endBitInByte = usedEndBit - byteStartBit;
+
+                // Calculate pixel positions for the bits (MSB on left, LSB on right)
+                // Bit 7 is leftmost, bit 0 is rightmost (conventional ordering)
+                const bitWidth = this.CELL_SIZE / 8;
+                const leftBitPos = 7 - endBitInByte; // MSB side (left)
+                const rightBitPos = 7 - startBitInByte; // LSB side (right)
+                
+                const highlightX = cellX + leftBitPos * bitWidth;
+                const highlightWidth = (rightBitPos - leftBitPos + 1) * bitWidth;
+
+                // Draw semi-transparent overlay to show which bits are used
+                this.ctx.fillStyle = color.replace(')', ', 0.6)').replace('rgb', 'rgba').replace('#', 'rgba(');
+                
+                // Convert hex color to rgba if needed
+                if (color.startsWith('#')) {
+                    const r = parseInt(color.substr(1, 2), 16);
+                    const g = parseInt(color.substr(3, 2), 16);
+                    const b = parseInt(color.substr(5, 2), 16);
+                    this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
+                }
+                
+                this.ctx.fillRect(highlightX, cellY, highlightWidth, this.CELL_SIZE);
+
+                // Draw bit range label if zoomed in enough
+                if (this.cameraZoom >= 4.0 && bitsize < 8) {
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.font = `${Math.floor(bitWidth * 0.8)}px monospace`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'top';
+                    const labelX = highlightX + highlightWidth / 2;
+                    const labelY = cellY + 2;
+                    
+                    if (startBitInByte === endBitInByte) {
+                        this.ctx.fillText(`b${startBitInByte}`, labelX, labelY);
+                    } else {
+                        this.ctx.fillText(`b${endBitInByte}:${startBitInByte}`, labelX, labelY);
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Draw bit-level highlighting for the parameter being dragged
+     */
+    drawDraggedParameterBitHighlight() {
+        const param = this.draggedParameter;
+        const rawOffset = this.cellToOffset(this.dragCurrentCell.row, this.dragCurrentCell.col);
+        const alignment = param.alignment || 1;
+        const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
+        const alignedOffset = this.snapToAlignment(rawOffset, alignment, totalSizeBytes);
+        
+        const shiftleft = param.shiftleft || 0;
+        const bitsize = param.bitsize || 0;
+
+        if (bitsize === 0) return;
+
+        // Calculate which bits are used
+        const startBit = shiftleft;
+        const endBit = shiftleft + bitsize - 1;
+
+        // Determine which bytes are affected
+        // For little-endian with MSB-first display: bit 0 is in the rightmost byte
+        const startByteFromLeft = Math.floor(startBit / 8);
+        const endByteFromLeft = Math.floor(endBit / 8);
+        const startByte = (alignment - 1) - startByteFromLeft;
+        const endByte = (alignment - 1) - endByteFromLeft;
+
+        // Draw bit highlighting for each affected byte
+        // Iterate from end byte to start byte since we reversed the calculation
+        for (let byteIndex = endByte; byteIndex <= startByte; byteIndex++) {
+            const byteOffset = alignedOffset + byteIndex;
+            const cell = this.offsetToCell(byteOffset);
+
+            if (cell.row < 0 || cell.row >= this.ROWS || cell.col < 0 || cell.col >= this.COLS) {
+                continue;
+            }
+
+            const cellX = this.LEFT_MARGIN + cell.col * this.CELL_SIZE;
+            const cellY = cell.row * this.CELL_SIZE;
+
+            // Calculate which bits in this byte are used
+            // Since we reversed byte indices, calculate bit range for little-endian layout
+            const byteStartBit = (alignment - 1 - byteIndex) * 8;
+            const byteEndBit = byteStartBit + 7;
+            
+            const usedStartBit = Math.max(startBit, byteStartBit);
+            const usedEndBit = Math.min(endBit, byteEndBit);
+            
+            const startBitInByte = usedStartBit - byteStartBit;
+            const endBitInByte = usedEndBit - byteStartBit;
+
+            // Calculate pixel positions for the bits (MSB on left, LSB on right)
+            const bitWidth = this.CELL_SIZE / 8;
+            const leftBitPos = 7 - endBitInByte;
+            const rightBitPos = 7 - startBitInByte;
+            
+            const highlightX = cellX + leftBitPos * bitWidth;
+            const highlightWidth = (rightBitPos - leftBitPos + 1) * bitWidth;
+
+            // Draw with green color for new position
+            this.ctx.fillStyle = 'rgba(76, 175, 80, 0.9)'; // Darker green
+            this.ctx.fillRect(highlightX, cellY, highlightWidth, this.CELL_SIZE);
+
+            // Draw bit range label if zoomed in enough
+            if (this.cameraZoom >= 4.0 && bitsize < 8) {
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = `${Math.floor(bitWidth * 0.8)}px monospace`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'top';
+                const labelX = highlightX + highlightWidth / 2;
+                const labelY = cellY + 2;
+                
+                if (startBitInByte === endBitInByte) {
+                    this.ctx.fillText(`b${startBitInByte}`, labelX, labelY);
+                } else {
+                    this.ctx.fillText(`b${endBitInByte}:${startBitInByte}`, labelX, labelY);
+                }
+            }
         }
     }
 
@@ -649,13 +889,26 @@ class FlashPageGridCanvas {
         // Handle parameter dragging
         if (this.isDraggingParameter && this.draggedParameter) {
             this.dragCurrentCell = cell;
-            const newOffset = this.cellToOffset(cell.row, cell.col);
-            const address = this.PAGE_BASE_ADDRESS + newOffset;
+            const rawOffset = this.cellToOffset(cell.row, cell.col);
+            const alignment = this.draggedParameter.alignment || 1;
+            const paramSizeBytes = Math.ceil(this.draggedParameter.bitsize / 8) * this.draggedParameter.count;
+            const alignedOffset = this.snapToAlignment(rawOffset, alignment, paramSizeBytes);
+            const alignedAddress = this.PAGE_BASE_ADDRESS + alignedOffset;
+            const shiftleft = this.draggedParameter.shiftleft || 0;
+
+            const snapWarning = (rawOffset !== alignedOffset) 
+                ? `<br><span style="color: #ff9800;">⚠ Will snap to ${alignment}-byte alignment boundary</span>` 
+                : '';
+            
+            const bitInfo = shiftleft > 0
+                ? `<br><span style="color: #00bcd4;">ℹ Bit offset: ${shiftleft} within alignment block</span>`
+                : '';
 
             document.getElementById('cellInfo').innerHTML = `
                 <strong>Moving: ${this.draggedParameter.name}</strong><br>
-                New Offset: ${newOffset} (0x${newOffset.toString(16).toUpperCase().padStart(4, '0')})<br>
-                New Address: <span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span><br>
+                Size: ${this.draggedParameter.bitsize} bits, Alignment: ${alignment} byte(s)<br>
+                New Offset: ${alignedOffset} (0x${alignedOffset.toString(16).toUpperCase().padStart(4, '0')})<br>
+                New Address: <span class="address-display">0x${alignedAddress.toString(16).toUpperCase().padStart(8, '0')}</span>${snapWarning}${bitInfo}<br>
                 <em>Release to place parameter here</em>
             `;
             this.drawGrid();
@@ -673,9 +926,8 @@ class FlashPageGridCanvas {
             let foundParam = null;
 
             for (const param of this.parameters) {
-                const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
-                const paramOffset = param.address & this.PAGE_MASK;
-                if (offset >= paramOffset && offset < paramOffset + totalSizeBytes) {
+                const visualOffset = this.getVisualRenderOffset(param);
+                if (offset >= visualOffset.startOffset && offset <= visualOffset.endOffset) {
                     foundParam = param;
                     break;
                 }
@@ -687,12 +939,16 @@ class FlashPageGridCanvas {
                     const address = this.PAGE_BASE_ADDRESS + offset;
                     const foundParamOffset = foundParam.address & this.PAGE_MASK;
                     const totalSizeBytes = Math.ceil(foundParam.bitsize / 8) * foundParam.count;
+                    const alignment = foundParam.alignment || 1;
+                    const shiftleft = foundParam.shiftleft || 0;
+                    const bitInfo = shiftleft > 0 
+                        ? `<br><small style="color: #666;">Bit offset: ${shiftleft} (within ${alignment}-byte block)</small>` 
+                        : '';
                     document.getElementById('cellInfo').innerHTML = `
                         <strong>${foundParam.name}</strong><br>
                         Type: ${foundParam.type_name || 'N/A'} | 
                         Size: ${foundParam.bitsize} bits × ${foundParam.count}<br>
-                        Address: <span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span> 
-                        (offset: ${foundParamOffset}-${foundParamOffset + totalSizeBytes - 1})<br>
+                        Base Address: <span class="address-display">0x${(this.PAGE_BASE_ADDRESS + foundParamOffset).toString(16).toUpperCase().padStart(8, '0')}</span>${bitInfo}<br>
                         ${foundParam.quantity_name ? 'Quantity: ' + foundParam.quantity_name : ''} 
                         ${foundParam.unit_symbol ? '(' + foundParam.unit_symbol + ')' : ''}<br>
                         ${foundParam.description || ''}
@@ -728,7 +984,10 @@ class FlashPageGridCanvas {
 
         // Handle parameter drop
         if (this.isDraggingParameter && this.draggedParameter && this.dragCurrentCell) {
-            const newOffset = this.cellToOffset(this.dragCurrentCell.row, this.dragCurrentCell.col);
+            const rawOffset = this.cellToOffset(this.dragCurrentCell.row, this.dragCurrentCell.col);
+            const alignment = this.draggedParameter.alignment || 1;
+            const paramSizeBytes = Math.ceil(this.draggedParameter.bitsize / 8) * this.draggedParameter.count;
+            const newOffset = this.snapToAlignment(rawOffset, alignment, paramSizeBytes);
             const newAddress = this.PAGE_BASE_ADDRESS + newOffset;
 
             // Check if position actually changed
@@ -940,20 +1199,27 @@ class FlashPageGridCanvas {
         const tableRows = this.parameters.map((param, index) => {
             const color = this.PARAM_COLORS[index % this.PARAM_COLORS.length];
             const address = param.address;
+            const alignment = param.alignment || 1;
             const totalSizeBits = param.bitsize * param.count;
             const totalSizeBytes = Math.ceil(param.bitsize / 8) * param.count;
             const isModified = this.modifiedParameters.has(param.id);
             const modifiedStyle = isModified ? 'background-color: #fff3cd;' : '';
             const modifiedBadge = isModified ? '<span style="color: #ff9800; font-weight: bold;" title="Unsaved changes"> ●</span>' : '';
+            
+            // Check if address is properly aligned
+            const offset = address & this.PAGE_MASK;
+            const isAligned = (offset % alignment) === 0;
+            const alignmentBadge = !isAligned ? '<span style="color: #f44336;" title="Misaligned!"> ⚠</span>' : '';
 
             return `
                 <tr class="parameter-row" data-param-id="${param.id}" style="border-left: 10px solid ${color}; ${modifiedStyle}" 
                     onmouseover="gridCanvas.highlightParameter(${param.id})" 
                     onmouseout="gridCanvas.unhighlightParameter()">
-                    <td style="font-weight: bold;">${param.name}${modifiedBadge}</td>
+                    <td style="font-weight: bold;">${param.name}${modifiedBadge}${alignmentBadge}</td>
                     <td><span class="address-display">0x${address.toString(16).toUpperCase().padStart(8, '0')}</span></td>
                     <td>${totalSizeBits}</td>
                     <td>${param.type_name || 'N/A'} × ${param.count}</td>
+                    <td>${alignment}B</td>
                     <td>${param.unit_symbol || '-'}</td>
                 </tr>
             `;
@@ -967,6 +1233,7 @@ class FlashPageGridCanvas {
                         <th style="padding: 8px; text-align: left;">Address</th>
                         <th style="padding: 8px; text-align: left;">bitsize</th>
                         <th style="padding: 8px; text-align: left;">Type</th>
+                        <th style="padding: 8px; text-align: left;">Align</th>
                         <th style="padding: 8px; text-align: left;">Unit</th>
                     </tr>
                 </thead>
