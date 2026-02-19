@@ -12,9 +12,24 @@
             background-color: #f5f5f5;
         }
 
+        .layout {
+            display: flex;
+            gap: 20px;
+        }
+
+        .sidebar {
+            width: 200px;
+            min-width: 200px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px;
+            color: #666;
+        }
+
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
+            flex: 1;
+            min-width: 0;
         }
 
         h1 {
@@ -77,6 +92,8 @@
             background: white;
             cursor: grab;
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            display: block;
+            width: 100%;
         }
 
         #gridCanvas:active {
@@ -95,42 +112,62 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>32×64 Grid Canvas</h1>
-        
-        <div class="info">
-            <p><strong>Controls:</strong></p>
-            <p>🖱️ <strong>Pan:</strong> Middle-click drag or Shift + Left-click drag</p>
-            <p>🔍 <strong>Zoom:</strong> Mouse wheel scroll</p>
-            <p>📍 <strong>Hover:</strong> Move mouse over cells to see coordinates</p>
-            <p id="cellInfo">Cell: (hover over grid)</p>
-            <p id="zoomLevel">Zoom: 1.00x</p>
-        </div>
+    <div class="layout">
+        <aside class="sidebar">
+            <strong>Sidebar (future)</strong>
+        </aside>
 
-        <div class="controls">
-            <button id="resetCamera">Reset Camera</button>
-            <button id="zoomIn">Zoom In</button>
-            <button id="zoomOut">Zoom Out</button>
-            <label for="alignment">Alignment</label>
-            <select id="alignment">
-                <option value="1">1 byte</option>
-                <option value="2" selected>2 bytes</option>
-                <option value="4">4 bytes</option>
-                <option value="8">8 bytes</option>
-            </select>
-        </div>
+        <div class="container">
+            <h1>32×64 Grid Canvas</h1>
+            
+            <div class="info">
+                <p><strong>Controls:</strong></p>
+                <p>🖱️ <strong>Pan:</strong> Middle-click drag or Shift + Left-click drag</p>
+                <p>🔍 <strong>Zoom:</strong> Mouse wheel scroll</p>
+                <p>📍 <strong>Hover:</strong> Move mouse over cells to see coordinates</p>
+                <p id="cellInfo">Cell: (hover over grid)</p>
+                <p id="zoomLevel">Zoom: 1.00x</p>
+            </div>
 
-        <canvas id="gridCanvas" width="1000" height="800"></canvas>
+            <div class="controls">
+                <button id="resetCamera">Reset Camera</button>
+                <button id="zoomIn">Zoom In</button>
+                <button id="zoomOut">Zoom Out</button>
+                <label for="alignment">Alignment</label>
+                <select id="alignment">
+                    <option value="1">1 byte</option>
+                    <option value="2" selected>2 bytes</option>
+                    <option value="4">4 bytes</option>
+                    <option value="8">8 bytes</option>
+                </select>
+            </div>
+
+            <canvas id="gridCanvas" width="1000" height="800"></canvas>
+        </div>
     </div>
 
     <script src="mapping.js"></script>
     <script>
+        const canvas = document.getElementById('gridCanvas');
+        const container = document.querySelector('.container');
+        const resizeCanvas = () => {
+            const width = Math.max(200, container.clientWidth);
+            canvas.width = width;
+        };
+
+        resizeCanvas();
+
         // Initialize the grid canvas
         const grid = new GridCanvas('gridCanvas', {
             cols: 32,
             rows: 64,
             cellSize: 20,
             cellColSpan: 2
+        });
+
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            grid.drawGrid();
         });
 
         // Setup button controls
