@@ -449,31 +449,28 @@ class GridCanvas {
     }
 
     /**
-     * Fill all selected bits (single row, contiguous selection)
-     * More efficient than checking each cell individually
+     * Fill bits in a row (single row, contiguous bits)
+     * @param {number} row - The row index
+     * @param {number} startBit - The starting bit position (global bit index in row)
+     * @param {number} endBit - The ending bit position (global bit index in row)
      */
-    fillSelectedBits() {
-        if (!this.selection) {
-            return;
-        }
-
-        const row = this.selection.row;
+    fillBits(row, startBit, endBit) {
         const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
         const cellY = row * this.CELL_SIZE;
 
-        // Calculate which columns contain selected bits
-        const startCol = Math.floor(this.selection.startBit / this.BITS_PER_CELL);
-        const endCol = Math.floor(this.selection.endBit / this.BITS_PER_CELL);
+        // Calculate which columns contain the bits
+        const startCol = Math.floor(startBit / this.BITS_PER_CELL);
+        const endCol = Math.floor(endBit / this.BITS_PER_CELL);
 
         this.ctx.fillStyle = 'rgba(33, 150, 243, 0.35)';
 
-        // Draw selected bits across all affected columns
+        // Draw bits across all affected columns
         for (let col = startCol; col <= endCol; col++) {
             const cellX = col * this.CELL_WIDTH;
             const rowStartBit = col * this.BITS_PER_CELL;
             const rowEndBit = rowStartBit + this.BITS_PER_CELL - 1;
-            const selStart = Math.max(this.selection.startBit, rowStartBit);
-            const selEnd = Math.min(this.selection.endBit, rowEndBit);
+            const selStart = Math.max(startBit, rowStartBit);
+            const selEnd = Math.min(endBit, rowEndBit);
 
             for (let bit = selStart; bit <= selEnd; bit++) {
                 const bitInCell = bit - rowStartBit;
@@ -497,7 +494,9 @@ class GridCanvas {
         const endRow = Math.min(this.ROWS - 1, Math.ceil(bounds.bottom / this.CELL_SIZE));
 
         // Fill selected bits once (more efficient than checking each cell)
-        this.fillSelectedBits();
+        if (this.selection) {
+            this.fillBits(this.selection.row, this.selection.startBit, this.selection.endBit);
+        }
 
         for (let row = startRow; row <= endRow; row++) {
             for (let col = startCol; col <= endCol; col++) {
