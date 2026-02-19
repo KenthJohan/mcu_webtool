@@ -322,18 +322,42 @@ class GridCanvas {
                 // Fill cell
                 this.ctx.fillStyle = fillColor;
                 this.ctx.fillRect(x, y, this.CELL_WIDTH, this.CELL_SIZE);
-
-                // Draw cell border
-                this.ctx.strokeStyle = '#cccccc';
-                this.ctx.lineWidth = this.LINE_WIDTH / this.cameraZoom;
-                this.ctx.strokeRect(x, y, this.CELL_WIDTH, this.CELL_SIZE);
             }
         }
+
+        // Draw grid lines
+        this.ctx.beginPath();
+
+        for (let col = 0; col <= this.COLS; col++) {
+            const x = col * this.CELL_WIDTH;
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, this.ROWS * this.CELL_SIZE);
+        }
+
+        this.ctx.lineWidth = 3* this.LINE_WIDTH / this.cameraZoom;
+        this.ctx.strokeStyle = '#04003d';
+        this.ctx.stroke();
+
+        for (let row = 0; row <= this.ROWS; row++) {
+            const y = row * this.CELL_SIZE;
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(this.COLS * this.CELL_WIDTH, y);
+        }
+
+        this.ctx.lineWidth = this.LINE_WIDTH / this.cameraZoom;
+        this.ctx.strokeStyle = '#b4b4b4';
+        this.ctx.stroke();
 
         // Draw grid outline
         this.ctx.strokeStyle = '#333333';
         this.ctx.lineWidth = 2 / this.cameraZoom;
-        this.ctx.strokeRect(0, 0, this.COLS * this.CELL_WIDTH, this.ROWS * this.CELL_SIZE);
+        this.ctx.beginPath();
+        this.ctx.moveTo(0, 0);
+        this.ctx.lineTo(this.COLS * this.CELL_WIDTH, 0);
+        this.ctx.lineTo(this.COLS * this.CELL_WIDTH, this.ROWS * this.CELL_SIZE);
+        this.ctx.lineTo(0, this.ROWS * this.CELL_SIZE);
+        this.ctx.closePath();
+        this.ctx.stroke();
 
         // Draw row and column labels when zoomed in enough
         if (this.cameraZoom >= 0.5) {
@@ -350,7 +374,7 @@ class GridCanvas {
      * Draw bit grid within cells (8 bits per byte)
      */
     drawBitGrid() {
-        this.ctx.strokeStyle = 'rgb(167, 167, 167)';
+        this.ctx.strokeStyle = 'rgb(189, 189, 189)';
         this.ctx.lineWidth = 1 / this.cameraZoom;
 
         for (let row = 0; row < this.ROWS; row++) {
