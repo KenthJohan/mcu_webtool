@@ -1,0 +1,144 @@
+
+
+-- Insert common units for physical and computer science quantities
+INSERT OR IGNORE INTO units (unit_symbol, unit_name, description) VALUES
+-- Voltage units
+('V', 'Volt', 'SI unit of electric potential'),
+('mV', 'Millivolt', '10^-3 volt'),
+('kV', 'Kilovolt', '10^3 volt'),
+('uV', 'Microvolt', '10^-6 volt'),
+-- Current units
+('A', 'Ampere', 'SI unit of electric current'),
+('mA', 'Milliampere', '10^-3 ampere'),
+('uA', 'Microampere', '10^-6 ampere'),
+('nA', 'Nanoampere', '10^-9 ampere'),
+-- Resistance units
+('Ω', 'Ohm', 'SI unit of electrical resistance'),
+('ohm', 'Ohm', 'SI unit of electrical resistance'),
+('kΩ', 'Kilohm', '10^3 ohm'),
+('MΩ', 'Megohm', '10^6 ohm'),
+-- Power units
+('W', 'Watt', 'SI unit of power'),
+('mW', 'Milliwatt', '10^-3 watt'),
+('kW', 'Kilowatt', '10^3 watt'),
+('MW', 'Megawatt', '10^6 watt'),
+-- Energy units
+('J', 'Joule', 'SI unit of energy'),
+('kJ', 'Kilojoule', '10^3 joule'),
+('Wh', 'Watt-hour', 'Energy unit'),
+('kWh', 'Kilowatt-hour', '10^3 watt-hour'),
+('mWh', 'Milliwatt-hour', '10^-3 watt-hour'),
+-- Temperature units
+('°C', 'Celsius', 'Celsius temperature scale'),
+('C', 'Celsius', 'Celsius temperature scale'),
+('°F', 'Fahrenheit', 'Fahrenheit temperature scale'),
+('F', 'Fahrenheit', 'Fahrenheit temperature scale'),
+('K', 'Kelvin', 'SI unit of temperature'),
+-- Pressure units
+('Pa', 'Pascal', 'SI unit of pressure'),
+('kPa', 'Kilopascal', '10^3 pascal'),
+('MPa', 'Megapascal', '10^6 pascal'),
+('bar', 'Bar', 'Pressure unit'),
+('mbar', 'Millibar', '10^-3 bar'),
+('psi', 'Pound per square inch', 'Imperial pressure unit'),
+('atm', 'Atmosphere', 'Standard atmospheric pressure'),
+-- Force units
+('N', 'Newton', 'SI unit of force'),
+('kN', 'Kilonewton', '10^3 newton'),
+('mN', 'Millinewton', '10^-3 newton'),
+-- Mass units
+('kg', 'Kilogram', 'SI unit of mass'),
+('g', 'Gram', '10^-3 kilogram'),
+('mg', 'Milligram', '10^-6 kilogram'),
+('ug', 'Microgram', '10^-9 kilogram'),
+('t', 'Tonne', '10^3 kilogram'),
+-- Length units
+('m', 'Meter', 'SI unit of length'),
+('km', 'Kilometer', '10^3 meter'),
+('cm', 'Centimeter', '10^-2 meter'),
+('mm', 'Millimeter', '10^-3 meter'),
+('um', 'Micrometer', '10^-6 meter'),
+('nm', 'Nanometer', '10^-9 meter'),
+('in', 'Inch', 'Imperial length unit'),
+('ft', 'Foot', 'Imperial length unit'),
+-- Time units
+('s', 'Second', 'SI unit of time'),
+('ms', 'Millisecond', '10^-3 second'),
+('us', 'Microsecond', '10^-6 second'),
+('ns', 'Nanosecond', '10^-9 second'),
+('min', 'Minute', '60 seconds'),
+('h', 'Hour', '3600 seconds'),
+('d', 'Day', '86400 seconds'),
+-- Velocity units
+('m/s', 'Meter per second', 'SI unit of velocity'),
+('km/h', 'Kilometer per hour', 'Velocity unit'),
+('mph', 'Mile per hour', 'Imperial velocity unit'),
+-- Acceleration units
+('m/s²', 'Meter per second squared', 'SI unit of acceleration'),
+('m/s2', 'Meter per second squared', 'SI unit of acceleration'),
+('g', 'Standard gravity', '9.80665 m/s²'),
+-- Frequency units
+('Hz', 'Hertz', 'SI unit of frequency'),
+('kHz', 'Kilohertz', '10^3 hertz'),
+('MHz', 'Megahertz', '10^6 hertz'),
+('GHz', 'Gigahertz', '10^9 hertz'),
+-- Angle units
+('deg', 'Degree', 'Angular measurement'),
+('°', 'Degree', 'Angular measurement'),
+('rad', 'Radian', 'SI unit of angle'),
+('mrad', 'Milliradian', '10^-3 radian'),
+-- Angular velocity units
+('rad/s', 'Radian per second', 'SI unit of angular velocity'),
+('rpm', 'Revolutions per minute', 'Angular velocity unit'),
+('deg/s', 'Degree per second', 'Angular velocity unit'),
+-- Torque units
+('Nm', 'Newton-meter', 'SI unit of torque'),
+('N·m', 'Newton-meter', 'SI unit of torque'),
+-- Capacitance units
+('F', 'Farad', 'SI unit of capacitance'),
+('uF', 'Microfarad', '10^-6 farad'),
+('nF', 'Nanofarad', '10^-9 farad'),
+('pF', 'Picofarad', '10^-12 farad'),
+-- Inductance units
+('H', 'Henry', 'SI unit of inductance'),
+('mH', 'Millihenry', '10^-3 henry'),
+('uH', 'Microhenry', '10^-6 henry'),
+('nH', 'Nanohenry', '10^-9 henry'),
+-- Magnetic field units
+('T', 'Tesla', 'SI unit of magnetic flux density'),
+('mT', 'Millitesla', '10^-3 tesla'),
+('uT', 'Microtesla', '10^-6 tesla'),
+('Gs', 'Gauss', 'CGS unit of magnetic flux density'),
+-- Luminosity units
+('cd', 'Candela', 'SI unit of luminous intensity'),
+('lm', 'Lumen', 'SI unit of luminous flux'),
+('lx', 'Lux', 'SI unit of illuminance'),
+-- Humidity units
+('%RH', 'Percent Relative Humidity', 'Relative humidity percentage'),
+('%', 'Percent', 'Percentage unit'),
+-- Data size units
+('bit', 'Bit', 'Binary digit'),
+('byte', 'Byte', '8 bits'),
+('B', 'Byte', '8 bits'),
+('KB', 'Kilobyte', '10^3 bytes'),
+('MB', 'Megabyte', '10^6 bytes'),
+('GB', 'Gigabyte', '10^9 bytes'),
+('TB', 'Terabyte', '10^12 bytes'),
+('KiB', 'Kibibyte', '2^10 bytes'),
+('MiB', 'Mebibyte', '2^20 bytes'),
+('GiB', 'Gibibyte', '2^30 bytes'),
+-- Data rate units
+('bps', 'Bits per second', 'Data transmission rate'),
+('kbps', 'Kilobits per second', '10^3 bps'),
+('Mbps', 'Megabits per second', '10^6 bps'),
+('Gbps', 'Gigabits per second', '10^9 bps'),
+('Bps', 'Bytes per second', 'Data transmission rate'),
+('KBps', 'Kilobytes per second', '10^3 Bps'),
+('MBps', 'Megabytes per second', '10^6 Bps'),
+-- Dimensionless/Count units
+('', 'Dimensionless', 'No unit'),
+('count', 'Count', 'Number of items'),
+('pcs', 'Pieces', 'Number of pieces'),
+('ppm', 'Parts per million', 'Ratio unit'),
+('ppb', 'Parts per billion', 'Ratio unit');
+
