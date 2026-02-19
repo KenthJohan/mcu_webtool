@@ -1,14 +1,9 @@
 -- Drop existing table if it exists
+DROP TABLE IF EXISTS parameters;
 DROP TABLE IF EXISTS units;
 DROP TABLE IF EXISTS quantities;
 DROP TABLE IF EXISTS types;
-DROP TABLE IF EXISTS parameters;
-
--- Drop sequence if it exists to avoid conflicts with the new schema
-DROP SEQUENCE IF EXISTS seq_units_id;
-DROP SEQUENCE IF EXISTS seq_quantities_id;
-DROP SEQUENCE IF EXISTS seq_types_id;
-DROP SEQUENCE IF EXISTS seq_parameters_id;
+DROP SEQUENCE IF EXISTS seq_global_id;
 
 CREATE SEQUENCE IF NOT EXISTS seq_global_id START 1;
 
