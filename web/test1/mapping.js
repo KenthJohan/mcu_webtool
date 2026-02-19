@@ -33,6 +33,7 @@ class GridCanvas {
 
         // Current hovered cell
         this.hoveredCell = null;
+        this.hoveredBitIdx = null;
 
         // Bind event handlers
         this.handleMouseDown = this.handleMouseDown.bind(this);
@@ -92,6 +93,34 @@ class GridCanvas {
     }
 
     /**
+     * Get byte cell and bit coordinates from mouse position
+     * @returns {object|null} - {row, col, bitidx} where bitidx is 0-7 (7=MSB/left, 0=LSB/right)
+     */
+    getCellAndBitFromMouse(event) {
+        const rect = this.canvas.getBoundingClientRect();
+        const screenX = event.clientX - rect.left;
+        const screenY = event.clientY - rect.top;
+        
+        // Convert to world coordinates
+        const world = this.screenToWorld(screenX, screenY);
+        const x = world.x;
+        const y = world.y;
+
+        const col = Math.floor(x / this.CELL_SIZE);
+        const row = Math.floor(y / this.CELL_SIZE);
+
+        if (row >= 0 && row < this.ROWS && col >= 0 && col < this.COLS) {
+            // Calculate bit position within the cell (0-7)
+            const xInCell = x - col * this.CELL_SIZE;
+            const bitWidth = this.CELL_SIZE / 8;
+            const bitidx = 7 - Math.floor(xInCell / bitWidth); // 7=MSB (left) to 0=LSB (right)
+            
+            return { row, col, bitidx };
+        }
+        return null;
+    }
+
+    /**
      * Handle mouse down event
      */
     handleMouseDown(event) {
@@ -123,29 +152,36 @@ class GridCanvas {
 
         // Get cell under mouse
         const cell = this.getCellFromMouse(event);
+        const cellAndBit = this.getCellAndBitFromMouse(event);
         
-        // Check if hovered cell changed
-        if (cell && (!this.hoveredCell || 
+        // Check if hovered cell or bit index changed
+        const cellChanged = cell && (!this.hoveredCell || 
             cell.row !== this.hoveredCell.row || 
-            cell.col !== this.hoveredCell.col)) {
-            
+            cell.col !== this.hoveredCell.col);
+        
+        const bitChanged = cellAndBit && cellAndBit.bitidx !== this.hoveredBitIdx;
+        
+        if (cell && (cellChanged || bitChanged)) {
             this.hoveredCell = cell;
+            this.hoveredBitIdx = cellAndBit ? cellAndBit.bitidx : null;
             
             // Dispatch custom event with cell coordinates
             const cellEvent = new CustomEvent('cellhover', {
                 detail: {
                     row: cell.row,
                     col: cell.col,
-                    index: cell.row * this.COLS + cell.col
+                    index: cell.row * this.COLS + cell.col,
+                    bitidx: cellAndBit ? cellAndBit.bitidx : null
                 }
             });
             this.canvas.dispatchEvent(cellEvent);
             
             // Update UI
-            this.updateCellInfo(cell);
+            this.updateCellInfo(cellAndBit || cell);
             this.drawGrid();
         } else if (!cell && this.hoveredCell) {
             this.hoveredCell = null;
+            this.hoveredBitIdx = null;
             this.updateCellInfo(null);
             this.drawGrid();
         }
@@ -162,7 +198,8 @@ class GridCanvas {
     }
 
     /**
-     * Handle mouse leave event
+     * HandlehoveredBitIdx = null;
+        this. mouse leave event
      */
     handleMouseLeave(event) {
         this.isPanning = false;
@@ -213,7 +250,11 @@ class GridCanvas {
         if (cellInfo) {
             if (cell) {
                 const index = cell.row * this.COLS + cell.col;
-                cellInfo.textContent = `Cell: Row ${cell.row}, Col ${cell.col} (Index: ${index})`;
+                let text = `Cell: Row ${cell.row}, Col ${cell.col} (Index: ${index})`;
+                if (cell.bitidx !== undefined && cell.bitidx !== null) {
+                    text += ` | Bit: ${cell.bitidx}`;
+                }
+                cellInfo.textContent = text;
             } else {
                 cellInfo.textContent = 'Cell: (hover over grid)';
             }
@@ -280,6 +321,50 @@ class GridCanvas {
         // Draw row and column labels when zoomed in enough
         if (this.cameraZoom >= 0.5) {
             this.drawLabels();
+        }
+
+        // Draw bit grid when zoomed in close
+        if (this.cameraZoom > 3) {
+            this.drawBitGrid();
+        }
+    }
+
+    /**
+     * Draw bit grid within cells (8 bits per byte)
+     */
+    drawBitGrid() {
+        this.ctx.strokeStyle = 'rgba(100, 100, 100, 0.4)';
+        this.ctx.lineWidth = 1 / this.cameraZoom;
+
+        for (let row = 0; row < this.ROWS; row++) {
+            for (let col = 0; col < this.COLS; col++) {
+                const cellX = col * this.CELL_SIZE;
+                const cellY = row * this.CELL_SIZE;
+                const bitWidth = this.CELL_SIZE / 8;
+
+                // Draw 8 bit rectangles within each cell
+                for (let bit = 0; bit < 8; bit++) {
+                    const bitX = cellX + bit * bitWidth;
+                    
+                    // Draw rectangle for each bit
+                    this.ctx.strokeRect(bitX, cellY, bitWidth, this.CELL_SIZE);
+                }
+
+                // Draw bit numbers when zoomed in very close
+                if (this.cameraZoom >= 6) {
+                    this.ctx.fillStyle = '#888888';
+                    this.ctx.font = `${Math.floor(bitWidth * 0.5)}px monospace`;
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    
+                    for (let bit = 0; bit < 8; bit++) {
+                        const bitX = cellX + bit * bitWidth + bitWidth / 2;
+                        const bitY = cellY + this.CELL_SIZE / 2;
+                        // MSB (bit 7) on left, LSB (bit 0) on right
+                        this.ctx.fillText((7 - bit).toString(), bitX, bitY);
+                    }
+                }
+            }
         }
     }
 
