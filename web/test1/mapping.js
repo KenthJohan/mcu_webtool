@@ -88,6 +88,21 @@ class GridCanvas {
     }
 
     /**
+     * Get visible world bounds based on current camera
+     */
+    getVisibleWorldBounds() {
+        const topLeft = this.screenToWorld(0, 0);
+        const bottomRight = this.screenToWorld(this.canvas.width, this.canvas.height);
+
+        return {
+            left: Math.min(topLeft.x, bottomRight.x),
+            right: Math.max(topLeft.x, bottomRight.x),
+            top: Math.min(topLeft.y, bottomRight.y),
+            bottom: Math.max(topLeft.y, bottomRight.y)
+        };
+    }
+
+    /**
      * Get cell coordinates from mouse position
      */
     getCellFromMouse(event) {
@@ -303,9 +318,20 @@ class GridCanvas {
             this.cameraOffsetX, this.cameraOffsetY
         );
 
+        const bounds = this.getVisibleWorldBounds();
+        const startCol = Math.max(0, Math.floor(bounds.left / this.CELL_WIDTH));
+        const endCol = Math.min(this.COLS - 1, Math.ceil(bounds.right / this.CELL_WIDTH));
+        const startRow = Math.max(0, Math.floor(bounds.top / this.CELL_SIZE));
+        const endRow = Math.min(this.ROWS - 1, Math.ceil(bounds.bottom / this.CELL_SIZE));
+
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.rect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
+        this.ctx.clip();
+
         // Draw cells
-        for (let row = 0; row < this.ROWS; row++) {
-            for (let col = 0; col < this.COLS; col++) {
+        for (let row = startRow; row <= endRow; row++) {
+            for (let col = startCol; col <= endCol; col++) {
                 const x = col * this.CELL_WIDTH;
                 const y = row * this.CELL_SIZE;
 
@@ -328,7 +354,7 @@ class GridCanvas {
         // Draw grid lines
         this.ctx.beginPath();
 
-        for (let col = 0; col <= this.COLS; col++) {
+        for (let col = startCol; col <= endCol + 1; col++) {
             const x = col * this.CELL_WIDTH;
             this.ctx.moveTo(x, 0);
             this.ctx.lineTo(x, this.ROWS * this.CELL_SIZE);
@@ -338,7 +364,7 @@ class GridCanvas {
         this.ctx.strokeStyle = '#04003d';
         this.ctx.stroke();
 
-        for (let row = 0; row <= this.ROWS; row++) {
+        for (let row = startRow; row <= endRow + 1; row++) {
             const y = row * this.CELL_SIZE;
             this.ctx.moveTo(0, y);
             this.ctx.lineTo(this.COLS * this.CELL_WIDTH, y);
@@ -359,6 +385,8 @@ class GridCanvas {
         this.ctx.closePath();
         this.ctx.stroke();
 
+        this.ctx.restore();
+
         // Draw row and column labels when zoomed in enough
         if (this.cameraZoom >= 0.5) {
             this.drawLabels();
@@ -377,8 +405,14 @@ class GridCanvas {
         this.ctx.strokeStyle = 'rgb(189, 189, 189)';
         this.ctx.lineWidth = 1 / this.cameraZoom;
 
-        for (let row = 0; row < this.ROWS; row++) {
-            for (let col = 0; col < this.COLS; col++) {
+        const bounds = this.getVisibleWorldBounds();
+        const startCol = Math.max(0, Math.floor(bounds.left / this.CELL_WIDTH));
+        const endCol = Math.min(this.COLS - 1, Math.ceil(bounds.right / this.CELL_WIDTH));
+        const startRow = Math.max(0, Math.floor(bounds.top / this.CELL_SIZE));
+        const endRow = Math.min(this.ROWS - 1, Math.ceil(bounds.bottom / this.CELL_SIZE));
+
+        for (let row = startRow; row <= endRow; row++) {
+            for (let col = startCol; col <= endCol; col++) {
                 const cellX = col * this.CELL_WIDTH;
                 const cellY = row * this.CELL_SIZE;
                 const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
