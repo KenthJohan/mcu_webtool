@@ -54,6 +54,20 @@
             cursor: pointer;
         }
 
+        .controls label {
+            margin-right: 8px;
+            color: #444;
+            font-weight: bold;
+        }
+
+        .controls select {
+            padding: 6px 10px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            background: #fff;
+        }
+
         .controls button:hover {
             background: #1976D2;
         }
@@ -97,6 +111,13 @@
             <button id="resetCamera">Reset Camera</button>
             <button id="zoomIn">Zoom In</button>
             <button id="zoomOut">Zoom Out</button>
+            <label for="alignment">Alignment</label>
+            <select id="alignment">
+                <option value="1">1 column</option>
+                <option value="2" selected>2 columns</option>
+                <option value="4">4 columns</option>
+                <option value="8">8 columns</option>
+            </select>
         </div>
 
         <canvas id="gridCanvas" width="1000" height="800"></canvas>
@@ -108,7 +129,8 @@
         const grid = new GridCanvas('gridCanvas', {
             cols: 32,
             rows: 64,
-            cellSize: 20
+            cellSize: 20,
+            cellColSpan: 2
         });
 
         // Setup button controls
@@ -122,6 +144,11 @@
 
         document.getElementById('zoomOut').addEventListener('click', () => {
             grid.zoom(0.8);
+        });
+
+        document.getElementById('alignment').addEventListener('change', (event) => {
+            const span = parseInt(event.target.value, 10);
+            grid.setCellColSpan(span);
         });
     </script>
 </body>

@@ -15,6 +15,9 @@ class GridCanvas {
         this.ROWS = config.rows || 64;
         this.CELL_SIZE = config.cellSize || 20;
         this.LINE_WIDTH = 1;
+        this.CELL_COL_SPAN = config.cellColSpan || 2;
+        this.BITS_PER_CELL = this.CELL_COL_SPAN * 8; // 2 columns * 8 bits/column = 16 bits per cell
+        this.CELL_WIDTH = this.CELL_SIZE * this.CELL_COL_SPAN;
 
         // Camera state
         this.cameraZoom = 1.0;
@@ -46,6 +49,20 @@ class GridCanvas {
         this.setupEventListeners();
 
         // Initial draw
+        this.drawGrid();
+    }
+
+    /**
+     * Update column span for each cell
+     */
+    setCellColSpan(span) {
+        const nextSpan = Math.max(1, Math.floor(span));
+        this.CELL_COL_SPAN = nextSpan;
+        this.BITS_PER_CELL = this.CELL_COL_SPAN * 8;
+        this.CELL_WIDTH = this.CELL_SIZE * this.CELL_COL_SPAN;
+        this.hoveredCell = null;
+        this.hoveredBitIdx = null;
+        this.updateCellInfo(null);
         this.drawGrid();
     }
 
@@ -83,7 +100,7 @@ class GridCanvas {
         const x = world.x;
         const y = world.y;
 
-        const col = Math.floor(x / this.CELL_SIZE);
+        const col = Math.floor(x / this.CELL_WIDTH);
         const row = Math.floor(y / this.CELL_SIZE);
 
         if (row >= 0 && row < this.ROWS && col >= 0 && col < this.COLS) {
@@ -106,14 +123,14 @@ class GridCanvas {
         const x = world.x;
         const y = world.y;
 
-        const col = Math.floor(x / this.CELL_SIZE);
+        const col = Math.floor(x / this.CELL_WIDTH);
         const row = Math.floor(y / this.CELL_SIZE);
 
         if (row >= 0 && row < this.ROWS && col >= 0 && col < this.COLS) {
-            // Calculate bit position within the cell (0-7)
-            const xInCell = x - col * this.CELL_SIZE;
-            const bitWidth = this.CELL_SIZE / 8;
-            const bitidx = 7 - Math.floor(xInCell / bitWidth); // 7=MSB (left) to 0=LSB (right)
+            // Calculate bit position within the cell
+            const xInCell = x - col * this.CELL_WIDTH;
+            const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
+            const bitidx = (this.BITS_PER_CELL - 1) - Math.floor(xInCell / bitWidth); // MSB (left) to LSB (right)
             
             return { row, col, bitidx };
         }
@@ -289,7 +306,7 @@ class GridCanvas {
         // Draw cells
         for (let row = 0; row < this.ROWS; row++) {
             for (let col = 0; col < this.COLS; col++) {
-                const x = col * this.CELL_SIZE;
+                const x = col * this.CELL_WIDTH;
                 const y = row * this.CELL_SIZE;
 
                 // Determine cell color
@@ -304,19 +321,19 @@ class GridCanvas {
 
                 // Fill cell
                 this.ctx.fillStyle = fillColor;
-                this.ctx.fillRect(x, y, this.CELL_SIZE, this.CELL_SIZE);
+                this.ctx.fillRect(x, y, this.CELL_WIDTH, this.CELL_SIZE);
 
                 // Draw cell border
                 this.ctx.strokeStyle = '#cccccc';
                 this.ctx.lineWidth = this.LINE_WIDTH / this.cameraZoom;
-                this.ctx.strokeRect(x, y, this.CELL_SIZE, this.CELL_SIZE);
+                this.ctx.strokeRect(x, y, this.CELL_WIDTH, this.CELL_SIZE);
             }
         }
 
         // Draw grid outline
         this.ctx.strokeStyle = '#333333';
         this.ctx.lineWidth = 2 / this.cameraZoom;
-        this.ctx.strokeRect(0, 0, this.COLS * this.CELL_SIZE, this.ROWS * this.CELL_SIZE);
+        this.ctx.strokeRect(0, 0, this.COLS * this.CELL_WIDTH, this.ROWS * this.CELL_SIZE);
 
         // Draw row and column labels when zoomed in enough
         if (this.cameraZoom >= 0.5) {
@@ -333,17 +350,17 @@ class GridCanvas {
      * Draw bit grid within cells (8 bits per byte)
      */
     drawBitGrid() {
-        this.ctx.strokeStyle = 'rgba(100, 100, 100, 0.4)';
+        this.ctx.strokeStyle = 'rgb(167, 167, 167)';
         this.ctx.lineWidth = 1 / this.cameraZoom;
 
         for (let row = 0; row < this.ROWS; row++) {
             for (let col = 0; col < this.COLS; col++) {
-                const cellX = col * this.CELL_SIZE;
+                const cellX = col * this.CELL_WIDTH;
                 const cellY = row * this.CELL_SIZE;
-                const bitWidth = this.CELL_SIZE / 8;
+                const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
 
-                // Draw 8 bit rectangles within each cell
-                for (let bit = 0; bit < 8; bit++) {
+                // Draw bit rectangles within each cell
+                for (let bit = 0; bit < this.BITS_PER_CELL; bit++) {
                     const bitX = cellX + bit * bitWidth;
                     
                     // Draw rectangle for each bit
@@ -352,16 +369,16 @@ class GridCanvas {
 
                 // Draw bit numbers when zoomed in very close
                 if (this.cameraZoom >= 6) {
-                    this.ctx.fillStyle = '#888888';
+                    this.ctx.fillStyle = '#414141';
                     this.ctx.font = `${Math.floor(bitWidth * 0.5)}px monospace`;
                     this.ctx.textAlign = 'center';
                     this.ctx.textBaseline = 'middle';
                     
-                    for (let bit = 0; bit < 8; bit++) {
+                    for (let bit = 0; bit < this.BITS_PER_CELL; bit++) {
                         const bitX = cellX + bit * bitWidth + bitWidth / 2;
                         const bitY = cellY + this.CELL_SIZE / 2;
-                        // MSB (bit 7) on left, LSB (bit 0) on right
-                        this.ctx.fillText((7 - bit).toString(), bitX, bitY);
+                        // MSB on left, LSB on right
+                        this.ctx.fillText(((this.BITS_PER_CELL - 1) - bit).toString(), bitX, bitY);
                     }
                 }
             }
@@ -381,7 +398,7 @@ class GridCanvas {
         // Draw column labels (only every nth column when zoomed out)
         const colStep = this.cameraZoom < 1 ? Math.ceil(4 / this.cameraZoom) : 1;
         for (let col = 0; col < this.COLS; col += colStep) {
-            const x = col * this.CELL_SIZE + this.CELL_SIZE / 2;
+            const x = col * this.CELL_WIDTH + this.CELL_WIDTH / 2;
             const y = -5 / this.cameraZoom;
             this.ctx.fillText(col.toString(), x, y);
         }
