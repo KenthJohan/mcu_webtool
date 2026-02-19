@@ -38,6 +38,11 @@ class GridCanvas {
         this.hoveredCell = null;
         this.hoveredBitIdx = null;
 
+        // Selection state (single row, contiguous bits)
+        this.isSelecting = false;
+        this.selectionStart = null;
+        this.selection = null;
+
         // Bind event handlers
         this.handleMouseDown = this.handleMouseDown.bind(this);
         this.handleMouseMove = this.handleMouseMove.bind(this);
@@ -109,7 +114,7 @@ class GridCanvas {
         const rect = this.canvas.getBoundingClientRect();
         const screenX = event.clientX - rect.left;
         const screenY = event.clientY - rect.top;
-        
+
         // Convert to world coordinates
         const world = this.screenToWorld(screenX, screenY);
         const x = world.x;
@@ -132,7 +137,7 @@ class GridCanvas {
         const rect = this.canvas.getBoundingClientRect();
         const screenX = event.clientX - rect.left;
         const screenY = event.clientY - rect.top;
-        
+
         // Convert to world coordinates
         const world = this.screenToWorld(screenX, screenY);
         const x = world.x;
@@ -146,7 +151,7 @@ class GridCanvas {
             const xInCell = x - col * this.CELL_WIDTH;
             const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
             const bitidx = (this.BITS_PER_CELL - 1) - Math.floor(xInCell / bitWidth); // MSB (left) to LSB (right)
-            
+
             return { row, col, bitidx };
         }
         return null;
@@ -165,6 +170,23 @@ class GridCanvas {
             this.lastPanX = this.cameraOffsetX;
             this.lastPanY = this.cameraOffsetY;
             this.canvas.style.cursor = 'grabbing';
+            return;
+        }
+
+        // Start selection with left mouse button
+        if (event.button === 0) {
+            const cellAndBit = this.getCellAndBitFromMouse(event);
+            if (cellAndBit) {
+                const bitPosFromLeft = (this.BITS_PER_CELL - 1) - cellAndBit.bitidx;
+                this.isSelecting = true;
+                this.selectionStart = cellAndBit;
+                this.selection = {
+                    row: cellAndBit.row,
+                    startBit: cellAndBit.col * this.BITS_PER_CELL + bitPosFromLeft,
+                    endBit: cellAndBit.col * this.BITS_PER_CELL + bitPosFromLeft
+                };
+                this.drawGrid();
+            }
         }
     }
 
@@ -182,21 +204,39 @@ class GridCanvas {
             return;
         }
 
+        // Handle selection drag
+        if (this.isSelecting && this.selectionStart) {
+            const cellAndBit = this.getCellAndBitFromMouse(event);
+            if (cellAndBit && cellAndBit.row === this.selectionStart.row) {
+                const startFromLeft = (this.BITS_PER_CELL - 1) - this.selectionStart.bitidx;
+                const endFromLeft = (this.BITS_PER_CELL - 1) - cellAndBit.bitidx;
+                const start = this.selectionStart.col * this.BITS_PER_CELL + startFromLeft;
+                const end = cellAndBit.col * this.BITS_PER_CELL + endFromLeft;
+                this.selection = {
+                    row: this.selectionStart.row,
+                    startBit: Math.min(start, end),
+                    endBit: Math.max(start, end)
+                };
+                this.drawGrid();
+            }
+            return;
+        }
+
         // Get cell under mouse
         const cell = this.getCellFromMouse(event);
         const cellAndBit = this.getCellAndBitFromMouse(event);
-        
+
         // Check if hovered cell or bit index changed
-        const cellChanged = cell && (!this.hoveredCell || 
-            cell.row !== this.hoveredCell.row || 
+        const cellChanged = cell && (!this.hoveredCell ||
+            cell.row !== this.hoveredCell.row ||
             cell.col !== this.hoveredCell.col);
-        
+
         const bitChanged = cellAndBit && cellAndBit.bitidx !== this.hoveredBitIdx;
-        
+
         if (cell && (cellChanged || bitChanged)) {
             this.hoveredCell = cell;
             this.hoveredBitIdx = cellAndBit ? cellAndBit.bitidx : null;
-            
+
             // Dispatch custom event with cell coordinates
             const cellEvent = new CustomEvent('cellhover', {
                 detail: {
@@ -207,7 +247,7 @@ class GridCanvas {
                 }
             });
             this.canvas.dispatchEvent(cellEvent);
-            
+
             // Update UI
             this.updateCellInfo(cellAndBit || cell);
             this.drawGrid();
@@ -227,6 +267,11 @@ class GridCanvas {
             this.isPanning = false;
             this.canvas.style.cursor = 'grab';
         }
+
+        if (this.isSelecting) {
+            this.isSelecting = false;
+            this.selectionStart = null;
+        }
     }
 
     /**
@@ -235,6 +280,8 @@ class GridCanvas {
      */
     handleMouseLeave(event) {
         this.isPanning = false;
+        this.isSelecting = false;
+        this.selectionStart = null;
         this.hoveredCell = null;
         this.updateCellInfo(null);
         this.canvas.style.cursor = 'grab';
@@ -246,30 +293,30 @@ class GridCanvas {
      */
     handleWheel(event) {
         event.preventDefault();
-        
+
         // Get mouse position before zoom
         const rect = this.canvas.getBoundingClientRect();
         const mouseX = event.clientX - rect.left;
         const mouseY = event.clientY - rect.top;
-        
+
         // Calculate world position before zoom
         const worldBeforeZoom = this.screenToWorld(mouseX, mouseY);
-        
+
         // Update zoom
         const zoomAmount = -event.deltaY * this.ZOOM_SENSITIVITY;
         const newZoom = this.cameraZoom * Math.exp(zoomAmount);
         this.cameraZoom = Math.max(this.MIN_ZOOM, Math.min(this.MAX_ZOOM, newZoom));
-        
+
         // Calculate world position after zoom
         const worldAfterZoom = this.screenToWorld(mouseX, mouseY);
-        
+
         // Adjust offset to keep the same point under the mouse
         this.cameraOffsetX += (worldAfterZoom.x - worldBeforeZoom.x) * this.cameraZoom;
         this.cameraOffsetY += (worldAfterZoom.y - worldBeforeZoom.y) * this.cameraZoom;
-        
+
         // Update zoom display
         this.updateZoomLevel();
-        
+
         // Redraw
         this.drawGrid();
     }
@@ -310,7 +357,7 @@ class GridCanvas {
         // Clear entire canvas
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        
+
         // Apply camera transform
         this.ctx.setTransform(
             this.cameraZoom, 0,
@@ -329,25 +376,24 @@ class GridCanvas {
         this.ctx.rect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
         this.ctx.clip();
 
+        let hoveredRect = null;
+
         // Draw cells
         for (let row = startRow; row <= endRow; row++) {
             for (let col = startCol; col <= endCol; col++) {
                 const x = col * this.CELL_WIDTH;
                 const y = row * this.CELL_SIZE;
 
-                // Determine cell color
-                let fillColor = '#ffffff';
-                
-                // Highlight hovered cell
-                if (this.hoveredCell && 
-                    this.hoveredCell.row === row && 
-                    this.hoveredCell.col === col) {
-                    fillColor = '#2196F3';
-                }
-
                 // Fill cell
-                this.ctx.fillStyle = fillColor;
+                this.ctx.fillStyle = '#ffffff';
                 this.ctx.fillRect(x, y, this.CELL_WIDTH, this.CELL_SIZE);
+
+                // Highlight hovered cell with border
+                if (this.hoveredCell &&
+                    this.hoveredCell.row === row &&
+                    this.hoveredCell.col === col) {
+                    hoveredRect = { x, y };
+                }
             }
         }
 
@@ -360,7 +406,7 @@ class GridCanvas {
             this.ctx.lineTo(x, this.ROWS * this.CELL_SIZE);
         }
 
-        this.ctx.lineWidth = 3* this.LINE_WIDTH / this.cameraZoom;
+        this.ctx.lineWidth = 3 * this.LINE_WIDTH / this.cameraZoom;
         this.ctx.strokeStyle = '#04003d';
         this.ctx.stroke();
 
@@ -373,6 +419,8 @@ class GridCanvas {
         this.ctx.lineWidth = this.LINE_WIDTH / this.cameraZoom;
         this.ctx.strokeStyle = '#b4b4b4';
         this.ctx.stroke();
+
+
 
         // Draw grid outline
         this.ctx.strokeStyle = '#333333';
@@ -396,6 +444,14 @@ class GridCanvas {
         if (this.cameraZoom > 3) {
             this.drawBitGrid();
         }
+
+        if (hoveredRect) {
+            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.lineWidth = 2 / this.cameraZoom;
+            this.ctx.strokeRect(hoveredRect.x, hoveredRect.y, this.CELL_WIDTH, this.CELL_SIZE);
+        }
+
+
     }
 
     /**
@@ -417,10 +473,26 @@ class GridCanvas {
                 const cellY = row * this.CELL_SIZE;
                 const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
 
+                // Fill selected bits (single row, contiguous)
+                if (this.selection && this.selection.row === row) {
+                    const rowStartBit = col * this.BITS_PER_CELL;
+                    const rowEndBit = rowStartBit + this.BITS_PER_CELL - 1;
+                    const selStart = Math.max(this.selection.startBit, rowStartBit);
+                    const selEnd = Math.min(this.selection.endBit, rowEndBit);
+                    if (selStart <= selEnd) {
+                        this.ctx.fillStyle = 'rgba(33, 150, 243, 0.35)';
+                        for (let bit = selStart; bit <= selEnd; bit++) {
+                            const bitInCell = bit - rowStartBit;
+                            const bitX = cellX + bitInCell * bitWidth;
+                            this.ctx.fillRect(bitX, cellY, bitWidth, this.CELL_SIZE);
+                        }
+                    }
+                }
+
                 // Draw bit rectangles within each cell
                 for (let bit = 0; bit < this.BITS_PER_CELL; bit++) {
                     const bitX = cellX + bit * bitWidth;
-                    
+
                     // Draw rectangle for each bit
                     this.ctx.strokeRect(bitX, cellY, bitWidth, this.CELL_SIZE);
                 }
@@ -431,7 +503,7 @@ class GridCanvas {
                     this.ctx.font = `${Math.floor(bitWidth * 0.5)}px monospace`;
                     this.ctx.textAlign = 'center';
                     this.ctx.textBaseline = 'middle';
-                    
+
                     for (let bit = 0; bit < this.BITS_PER_CELL; bit++) {
                         const bitX = cellX + bit * bitWidth + bitWidth / 2;
                         const bitY = cellY + this.CELL_SIZE / 2;
@@ -489,17 +561,17 @@ class GridCanvas {
         // Zoom towards center of canvas
         const centerX = this.canvas.width / 2;
         const centerY = this.canvas.height / 2;
-        
+
         const worldBefore = this.screenToWorld(centerX, centerY);
-        
+
         this.cameraZoom *= factor;
         this.cameraZoom = Math.max(this.MIN_ZOOM, Math.min(this.MAX_ZOOM, this.cameraZoom));
-        
+
         const worldAfter = this.screenToWorld(centerX, centerY);
-        
+
         this.cameraOffsetX += (worldAfter.x - worldBefore.x) * this.cameraZoom;
         this.cameraOffsetY += (worldAfter.y - worldBefore.y) * this.cameraZoom;
-        
+
         this.updateZoomLevel();
         this.drawGrid();
     }
