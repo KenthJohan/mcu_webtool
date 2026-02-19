@@ -449,6 +449,41 @@ class GridCanvas {
     }
 
     /**
+     * Fill all selected bits (single row, contiguous selection)
+     * More efficient than checking each cell individually
+     */
+    fillSelectedBits() {
+        if (!this.selection) {
+            return;
+        }
+
+        const row = this.selection.row;
+        const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
+        const cellY = row * this.CELL_SIZE;
+
+        // Calculate which columns contain selected bits
+        const startCol = Math.floor(this.selection.startBit / this.BITS_PER_CELL);
+        const endCol = Math.floor(this.selection.endBit / this.BITS_PER_CELL);
+
+        this.ctx.fillStyle = 'rgba(33, 150, 243, 0.35)';
+
+        // Draw selected bits across all affected columns
+        for (let col = startCol; col <= endCol; col++) {
+            const cellX = col * this.CELL_WIDTH;
+            const rowStartBit = col * this.BITS_PER_CELL;
+            const rowEndBit = rowStartBit + this.BITS_PER_CELL - 1;
+            const selStart = Math.max(this.selection.startBit, rowStartBit);
+            const selEnd = Math.min(this.selection.endBit, rowEndBit);
+
+            for (let bit = selStart; bit <= selEnd; bit++) {
+                const bitInCell = bit - rowStartBit;
+                const bitX = cellX + bitInCell * bitWidth;
+                this.ctx.fillRect(bitX, cellY, bitWidth, this.CELL_SIZE);
+            }
+        }
+    }
+
+    /**
      * Draw bit grid within cells (8 bits per byte)
      */
     drawBitGrid() {
@@ -461,27 +496,14 @@ class GridCanvas {
         const startRow = Math.max(0, Math.floor(bounds.top / this.CELL_SIZE));
         const endRow = Math.min(this.ROWS - 1, Math.ceil(bounds.bottom / this.CELL_SIZE));
 
+        // Fill selected bits once (more efficient than checking each cell)
+        this.fillSelectedBits();
+
         for (let row = startRow; row <= endRow; row++) {
             for (let col = startCol; col <= endCol; col++) {
                 const cellX = col * this.CELL_WIDTH;
                 const cellY = row * this.CELL_SIZE;
                 const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
-
-                // Fill selected bits (single row, contiguous)
-                if (this.selection && this.selection.row === row) {
-                    const rowStartBit = col * this.BITS_PER_CELL;
-                    const rowEndBit = rowStartBit + this.BITS_PER_CELL - 1;
-                    const selStart = Math.max(this.selection.startBit, rowStartBit);
-                    const selEnd = Math.min(this.selection.endBit, rowEndBit);
-                    if (selStart <= selEnd) {
-                        this.ctx.fillStyle = 'rgba(33, 150, 243, 0.35)';
-                        for (let bit = selStart; bit <= selEnd; bit++) {
-                            const bitInCell = bit - rowStartBit;
-                            const bitX = cellX + bitInCell * bitWidth;
-                            this.ctx.fillRect(bitX, cellY, bitWidth, this.CELL_SIZE);
-                        }
-                    }
-                }
 
                 // Draw bit rectangles within each cell
                 for (let bit = 0; bit < this.BITS_PER_CELL; bit++) {
