@@ -24,7 +24,7 @@ class GridCanvas {
         this.cameraOffsetX = 0;
         this.cameraOffsetY = 0;
         this.MIN_ZOOM = 0.1;
-        this.MAX_ZOOM = 10;
+        this.MAX_ZOOM = 100;
         this.ZOOM_SENSITIVITY = 0.001;
 
         // Panning state
@@ -376,8 +376,6 @@ class GridCanvas {
         this.ctx.rect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
         this.ctx.clip();
 
-        let hoveredRect = null;
-
         // Draw cells
         for (let row = startRow; row <= endRow; row++) {
             for (let col = startCol; col <= endCol; col++) {
@@ -388,12 +386,6 @@ class GridCanvas {
                 this.ctx.fillStyle = '#ffffff';
                 this.ctx.fillRect(x, y, this.CELL_WIDTH, this.CELL_SIZE);
 
-                // Highlight hovered cell with border
-                if (this.hoveredCell &&
-                    this.hoveredCell.row === row &&
-                    this.hoveredCell.col === col) {
-                    hoveredRect = { x, y };
-                }
             }
         }
 
@@ -445,10 +437,12 @@ class GridCanvas {
             this.drawBitGrid();
         }
 
-        if (hoveredRect) {
+        if (this.hoveredCell) {
+            const hoveredX = this.hoveredCell.col * this.CELL_WIDTH;
+            const hoveredY = this.hoveredCell.row * this.CELL_SIZE;
             this.ctx.strokeStyle = '#ff0000';
             this.ctx.lineWidth = 2 / this.cameraZoom;
-            this.ctx.strokeRect(hoveredRect.x, hoveredRect.y, this.CELL_WIDTH, this.CELL_SIZE);
+            this.ctx.strokeRect(hoveredX, hoveredY, this.CELL_WIDTH, this.CELL_SIZE);
         }
 
 
