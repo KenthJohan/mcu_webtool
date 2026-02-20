@@ -1,0 +1,44 @@
+[
+    {
+        "row": 2,
+        "startBit": 0,
+        "endBit": 7,
+        "color": "rgba(255, 193, 7, 0.35)"
+    },
+    {
+        "row": 2,
+        "startBit": 8,
+        "endBit": 23,
+        "color": "rgba(76, 175, 80, 0.35)"
+    },
+    {
+        "row": 10,
+        "startBit": 4,
+        "endBit": 19,
+        "color": "rgba(244, 67, 54, 0.3)"
+    },
+    {
+        "row": 15,
+        "startBit": 32,
+        "endBit": 63,
+        "color": "rgba(33, 150, 243, 0.3)"
+    },
+    {
+        "row": 20,
+        "startBit": 0,
+        "endBit": 15,
+        "color": "rgba(156, 39, 176, 0.3)"
+    },
+    {
+        "row": 25,
+        "startBit": 16,
+        "endBit": 31,
+        "color": "rgba(255, 87, 34, 0.3)"
+    },
+    {
+        "row": 30,
+        "startBit": 8,
+        "endBit": 27,
+        "color": "rgba(0, 188, 212, 0.3)"
+    }
+]

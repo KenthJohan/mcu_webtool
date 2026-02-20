@@ -43,6 +43,11 @@ class GridCanvas {
         this.selectionStart = null;
         this.selection = null;
 
+        // Region overlays
+        this.regions = [];
+        this.regionsUrl = config.regionsUrl || 'regions.json';
+        this.loadRegions(this.regionsUrl);
+
         // Bind event handlers
         this.handleMouseDown = this.handleMouseDown.bind(this);
         this.handleMouseMove = this.handleMouseMove.bind(this);
@@ -69,6 +74,62 @@ class GridCanvas {
         this.hoveredBitIdx = null;
         this.updateCellInfo(null);
         this.drawGrid();
+    }
+
+    /**
+     * Load region overlays from JSON
+     */
+    loadRegions(url) {
+        if (!url) {
+            return;
+        }
+
+        fetch(url)
+            .then((response) => response.json())
+            .then((data) => {
+                const list = Array.isArray(data) ? data : (data && Array.isArray(data.regions) ? data.regions : []);
+                this.regions = list
+                    .map((region) => this.normalizeRegion(region))
+                    .filter(Boolean);
+                this.drawGrid();
+            })
+            .catch((error) => {
+                console.warn('Failed to load regions', error);
+            });
+    }
+
+    /**
+     * Normalize and validate a region object
+     */
+    normalizeRegion(region) {
+        if (!region) {
+            return null;
+        }
+
+        const row = Number(region.row);
+        const startBit = Number(region.startBit);
+        const endBit = Number(region.endBit);
+
+        if (!Number.isFinite(row) || !Number.isFinite(startBit) || !Number.isFinite(endBit)) {
+            return null;
+        }
+
+        const rowIndex = Math.floor(row);
+        if (rowIndex < 0 || rowIndex >= this.ROWS) {
+            return null;
+        }
+
+        const maxBit = this.COLS * this.BITS_PER_CELL - 1;
+        const start = Math.max(0, Math.min(maxBit, Math.min(startBit, endBit)));
+        const end = Math.max(0, Math.min(maxBit, Math.max(startBit, endBit)));
+        const color = typeof region.color === 'string' ? region.color : null;
+
+        return {
+            row: rowIndex,
+            startBit: Math.floor(start),
+            endBit: Math.floor(end),
+            color
+        };
     }
 
     /**
@@ -444,7 +505,17 @@ class GridCanvas {
             this.ctx.lineWidth = 2 / this.cameraZoom;
             this.ctx.strokeRect(hoveredX, hoveredY, this.CELL_WIDTH, this.CELL_SIZE);
         }
+        
+        // Fill selected bits once (more efficient than checking each cell)
+        if (this.selection) {
+            this.fillBits(this.selection.row, this.selection.startBit, this.selection.endBit);
+        }
 
+        if (this.regions.length > 0) {
+            for (const region of this.regions) {
+                this.fillBits(region.row, region.startBit, region.endBit, region.color);
+            }
+        }
 
     }
 
@@ -454,7 +525,7 @@ class GridCanvas {
      * @param {number} startBit - The starting bit position (global bit index in row)
      * @param {number} endBit - The ending bit position (global bit index in row)
      */
-    fillBits(row, startBit, endBit) {
+    fillBits(row, startBit, endBit, color) {
         const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
         const cellY = row * this.CELL_SIZE;
 
@@ -462,7 +533,7 @@ class GridCanvas {
         const startCol = Math.floor(startBit / this.BITS_PER_CELL);
         const endCol = Math.floor(endBit / this.BITS_PER_CELL);
 
-        this.ctx.fillStyle = 'rgba(33, 150, 243, 0.35)';
+        this.ctx.fillStyle = color || 'rgba(33, 150, 243, 0.35)';
 
         // Draw bits across all affected columns
         for (let col = startCol; col <= endCol; col++) {
@@ -493,10 +564,7 @@ class GridCanvas {
         const startRow = Math.max(0, Math.floor(bounds.top / this.CELL_SIZE));
         const endRow = Math.min(this.ROWS - 1, Math.ceil(bounds.bottom / this.CELL_SIZE));
 
-        // Fill selected bits once (more efficient than checking each cell)
-        if (this.selection) {
-            this.fillBits(this.selection.row, this.selection.startBit, this.selection.endBit);
-        }
+
 
         for (let row = startRow; row <= endRow; row++) {
             for (let col = startCol; col <= endCol; col++) {
