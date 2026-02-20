@@ -106,26 +106,27 @@ class GridCanvas {
             return null;
         }
 
-        const row = Number(region.row);
+        const address = Number(region.address);
         const startBit = Number(region.startBit);
         const endBit = Number(region.endBit);
 
-        if (!Number.isFinite(row) || !Number.isFinite(startBit) || !Number.isFinite(endBit)) {
+        if (!Number.isFinite(address) || !Number.isFinite(startBit) || !Number.isFinite(endBit)) {
             return null;
         }
 
-        const rowIndex = Math.floor(row);
-        if (rowIndex < 0 || rowIndex >= this.ROWS) {
+        const cell = this.getRowColFromIndex(address);
+        if (!cell) {
             return null;
         }
 
+        const baseBitOffset = cell.col * this.BITS_PER_CELL;
         const maxBit = this.COLS * this.BITS_PER_CELL - 1;
-        const start = Math.max(0, Math.min(maxBit, Math.min(startBit, endBit)));
-        const end = Math.max(0, Math.min(maxBit, Math.max(startBit, endBit)));
+        const start = Math.max(0, Math.min(maxBit, baseBitOffset + Math.min(startBit, endBit)));
+        const end = Math.max(0, Math.min(maxBit, baseBitOffset + Math.max(startBit, endBit)));
         const color = typeof region.color === 'string' ? region.color : null;
 
         return {
-            row: rowIndex,
+            address: Math.floor(address),
             startBit: Math.floor(start),
             endBit: Math.floor(end),
             color
@@ -191,6 +192,25 @@ class GridCanvas {
     }
 
     /**
+     * Get row/column from a row-major index
+     */
+    getRowColFromIndex(index) {
+        if (!Number.isFinite(index)) {
+            return null;
+        }
+
+        const idx = Math.floor(index);
+        if (idx < 0 || idx >= this.ROWS * this.COLS) {
+            return null;
+        }
+
+        const row = Math.floor(idx / this.COLS);
+        const col = idx % this.COLS;
+
+        return { row, col };
+    }
+
+    /**
      * Get byte cell and bit coordinates from mouse position
      * @returns {object|null} - {row, col, bitidx} where bitidx is 0-7 (7=MSB/left, 0=LSB/right)
      */
@@ -238,11 +258,16 @@ class GridCanvas {
         if (event.button === 0) {
             const cellAndBit = this.getCellAndBitFromMouse(event);
             if (cellAndBit) {
+                const startIndex = cellAndBit.row * this.COLS + cellAndBit.col;
                 const bitPosFromLeft = (this.BITS_PER_CELL - 1) - cellAndBit.bitidx;
                 this.isSelecting = true;
-                this.selectionStart = cellAndBit;
+                this.selectionStart = {
+                    index: startIndex,
+                    col: cellAndBit.col,
+                    bitidx: cellAndBit.bitidx
+                };
                 this.selection = {
-                    row: cellAndBit.row,
+                    address: startIndex,
                     startBit: cellAndBit.col * this.BITS_PER_CELL + bitPosFromLeft,
                     endBit: cellAndBit.col * this.BITS_PER_CELL + bitPosFromLeft
                 };
@@ -268,13 +293,14 @@ class GridCanvas {
         // Handle selection drag
         if (this.isSelecting && this.selectionStart) {
             const cellAndBit = this.getCellAndBitFromMouse(event);
-            if (cellAndBit && cellAndBit.row === this.selectionStart.row) {
+            const selectionRow = Math.floor(this.selectionStart.index / this.COLS);
+            if (cellAndBit && cellAndBit.row === selectionRow) {
                 const startFromLeft = (this.BITS_PER_CELL - 1) - this.selectionStart.bitidx;
                 const endFromLeft = (this.BITS_PER_CELL - 1) - cellAndBit.bitidx;
                 const start = this.selectionStart.col * this.BITS_PER_CELL + startFromLeft;
                 const end = cellAndBit.col * this.BITS_PER_CELL + endFromLeft;
                 this.selection = {
-                    row: this.selectionStart.row,
+                    address: this.selectionStart.index,
                     startBit: Math.min(start, end),
                     endBit: Math.max(start, end)
                 };
@@ -508,24 +534,30 @@ class GridCanvas {
         
         // Fill selected bits once (more efficient than checking each cell)
         if (this.selection) {
-            this.fillBits(this.selection.row, this.selection.startBit, this.selection.endBit);
+            this.fillBits(this.selection.address, this.selection.startBit, this.selection.endBit);
         }
 
         if (this.regions.length > 0) {
             for (const region of this.regions) {
-                this.fillBits(region.row, region.startBit, region.endBit, region.color);
+                this.fillBits(region.address, region.startBit, region.endBit, region.color);
             }
         }
 
     }
 
     /**
-     * Fill bits in a row (single row, contiguous bits)
-     * @param {number} row - The row index
+    * Fill bits in a row (single row, contiguous bits)
+    * @param {number} address - Row-major cell index used to resolve the row
      * @param {number} startBit - The starting bit position (global bit index in row)
      * @param {number} endBit - The ending bit position (global bit index in row)
      */
-    fillBits(row, startBit, endBit, color) {
+    fillBits(address, startBit, endBit, color) {
+        const cell = this.getRowColFromIndex(address);
+        if (!cell) {
+            return;
+        }
+
+        const row = cell.row;
         const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
         const cellY = row * this.CELL_SIZE;
 
