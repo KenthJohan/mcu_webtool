@@ -1,0 +1,123 @@
+{
+  "name": "Root",
+  "type": "object",
+  "children": [
+    {
+      "name": "user",
+      "type": "object",
+      "children": [
+        {
+          "name": "id",
+          "type": "number",
+          "value": 123
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "value": "john_doe"
+        },
+        {
+          "name": "email",
+          "type": "string",
+          "value": "john@example.com"
+        },
+        {
+          "name": "roles",
+          "type": "array",
+          "children": [
+            {
+              "name": "[0]",
+              "type": "string",
+              "value": "admin"
+            },
+            {
+              "name": "[1]",
+              "type": "string",
+              "value": "user"
+            }
+          ]
+        },
+        {
+          "name": "profile",
+          "type": "object",
+          "children": [
+            {
+              "name": "firstName",
+              "type": "string",
+              "value": "John"
+            },
+            {
+              "name": "lastName",
+              "type": "string",
+              "value": "Doe"
+            },
+            {
+              "name": "age",
+              "type": "number",
+              "value": 30
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "settings",
+      "type": "object",
+      "children": [
+        {
+          "name": "theme",
+          "type": "string",
+          "value": "dark"
+        },
+        {
+          "name": "notifications",
+          "type": "boolean",
+          "value": true
+        },
+        {
+          "name": "language",
+          "type": "string",
+          "value": "en"
+        }
+      ]
+    },
+    {
+      "name": "data",
+      "type": "array",
+      "children": [
+        {
+          "name": "[0]",
+          "type": "object",
+          "children": [
+            {
+              "name": "id",
+              "type": "number",
+              "value": 1
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "value": "First Item"
+            }
+          ]
+        },
+        {
+          "name": "[1]",
+          "type": "object",
+          "children": [
+            {
+              "name": "id",
+              "type": "number",
+              "value": 2
+            },
+            {
+              "name": "title",
+              "type": "string",
+              "value": "Second Item"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

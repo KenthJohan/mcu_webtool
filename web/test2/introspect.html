@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Object Tree View</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'MS Sans Serif', 'Microsoft Sans Serif', Arial, sans-serif;
+      background: #008080;
+      min-height: 100vh;
+      padding: 8px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #c0c0c0;
+      border: 2px solid;
+      border-color: #dfdfdf #808080 #808080 #dfdfdf;
+      box-shadow: inset 1px 1px 0 #ffffff, inset -1px -1px 0 #000000;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .header {
+      background: linear-gradient(to right, #000080, #1084d7);
+      color: white;
+      padding: 2px 2px;
+      border-bottom: 2px solid;
+      border-color: #dfdfdf #808080;
+      display: flex;
+      align-items: center;
+    }
+
+    .header h1 {
+      font-size: 16px;
+      font-weight: bold;
+      margin: 0;
+      padding: 0 4px;
+    }
+
+    .content {
+      padding: 2px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .controls {
+      margin-bottom: 4px;
+      display: flex;
+      gap: 2px;
+      padding: 2px;
+      background: #c0c0c0;
+      border: 2px solid;
+      border-color: #dfdfdf #808080 #808080 #dfdfdf;
+      flex-wrap: wrap;
+    }
+
+    .controls button {
+      padding: 3px 12px;
+      background: #c0c0c0;
+      color: #000;
+      border: 2px solid;
+      border-color: #dfdfdf #808080 #808080 #dfdfdf;
+      cursor: pointer;
+      font-size: 11px;
+      font-family: 'MS Sans Serif', Arial, sans-serif;
+      transition: none;
+      min-width: 75px;
+      height: 23px;
+    }
+
+    .controls button:active {
+      border-color: #808080 #dfdfdf #dfdfdf #808080;
+    }
+
+    .controls button:hover {
+      background: #c0c0c0;
+    }
+
+    .controls textarea {
+      flex: 1;
+      min-width: 200px;
+      min-height: 50px;
+      padding: 2px;
+      border: 2px solid;
+      border-color: #808080 #dfdfdf #dfdfdf #808080;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      resize: vertical;
+      background: white;
+      color: #000;
+    }
+
+    #tree-container {
+      overflow: auto;
+      background: white;
+      border: 2px solid;
+      border-color: #808080 #dfdfdf #dfdfdf #808080;
+      padding: 2px;
+      flex: 1;
+    }
+
+    .tree-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      font-family: 'MS Sans Serif', Arial, sans-serif;
+    }
+
+    .tree-table tbody tr {
+      border: none;
+      transition: none;
+    }
+
+    .tree-table tbody tr:hover {
+      background-color: transparent;
+    }
+
+    .tree-table tbody tr.selected {
+      background-color: #000080;
+      color: white;
+    }
+
+    .tree-table td {
+      padding: 1px 2px;
+      vertical-align: middle;
+      border: none;
+      background: white;
+    }
+
+    .tree-table tbody tr.selected td {
+      background-color: #000080;
+      color: white;
+    }
+
+    .tree-expand-cell {
+      width: 20px;
+      padding: 1px 2px;
+      text-align: center;
+    }
+
+    .tree-toggle {
+      background: #c0c0c0;
+      border: 1px solid;
+      border-color: #dfdfdf #808080 #808080 #dfdfdf;
+      cursor: pointer;
+      font-size: 10px;
+      color: #000;
+      padding: 0px 2px;
+      transition: none;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .tree-toggle:active {
+      border-color: #808080 #dfdfdf #dfdfdf #808080;
+    }
+
+    .tree-name-cell {
+      color: #000;
+      word-break: break-word;
+      user-select: none;
+    }
+
+    .tree-type-cell {
+      width: 80px;
+      user-select: none;
+    }
+
+    .type-tag {
+      display: inline-block;
+      padding: 1px 4px;
+      border: 1px solid;
+      border-color: #dfdfdf #808080 #808080 #dfdfdf;
+      font-size: 10px;
+      font-weight: normal;
+      text-align: center;
+      background: #c0c0c0;
+      color: #000;
+    }
+
+    .type-object {
+      background: #c0c0c0;
+    }
+
+    .type-array {
+      background: #c0c0c0;
+    }
+
+    .type-string {
+      background: #c0c0c0;
+    }
+
+    .type-number {
+      background: #c0c0c0;
+    }
+
+    .type-boolean {
+      background: #c0c0c0;
+    }
+
+    .tree-value-cell {
+      color: #000;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      word-break: break-word;
+      max-width: 300px;
+    }
+
+    .tree-value {
+      padding: 0px 2px;
+      border-radius: 0;
+    }
+
+    @media (max-width: 768px) {
+      .controls {
+        flex-direction: column;
+      }
+
+      .tree-table {
+        font-size: 10px;
+      }
+
+      .tree-table td {
+        padding: 1px 2px;
+      }
+
+      .tree-name-cell {
+        width: auto;
+      }
+
+      .tree-value-cell {
+        max-width: 150px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Tree View Inspector</h1>
+    </div>
+
+    <div class="content">
+      <div class="controls">
+        <button onclick="document.querySelector('textarea').focus()">Edit JSON</button>
+        <button onclick="loadAndRender()">Load</button>
+        <button onclick="downloadJSON()">Save</button>
+        <textarea id="json-input" placeholder="Paste JSON here..."></textarea>
+      </div>
+
+      <div id="tree-container">
+        <!-- Tree table will be rendered here -->
+      </div>
+    </div>
+  </div>
+
+  <script src="introspect.js"></script>
+  <script>
+    function loadAndRender() {
+      const jsonInput = document.getElementById('json-input').value;
+      if (jsonInput.trim()) {
+        loadCustomJson(jsonInput);
+      } else {
+        alert('Please paste JSON in the textarea');
+      }
+    }
+
+    function downloadJSON() {
+      if (!treeData) {
+        alert('No data to download');
+        return;
+      }
+      const jsonString = JSON.stringify(treeData, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'tree-data.json';
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
