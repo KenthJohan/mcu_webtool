@@ -1,142 +1,298 @@
-// Load JSON data and create tree view
-let treeData = null;
+/**
+ * Windows 98 Style Object Explorer
+ * Recursively explores objects with collapsible tree view
+ */
+class ObjectExplorer {
+    constructor(containerId, data) {
+        this.container = document.getElementById(containerId);
+        this.data = data;
+        this.expandedNodes = new Set();
+        this.nodeId = 0;
 
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    const response = await fetch('introspect.json');
-    treeData = await response.json();
-    renderTreeView(treeData);
-  } catch (error) {
-    console.error('Error loading JSON:', error);
-    document.getElementById('tree-container').innerHTML = '<p style="color: red;">Error loading data</p>';
-  }
-});
-
-// Recursive function to render tree view
-function renderTreeView(data, parentElement = null) {
-  if (!parentElement) {
-    parentElement = document.getElementById('tree-container');
-    parentElement.innerHTML = ''; // Clear existing content
-  }
-
-  const table = document.createElement('table');
-  table.className = 'tree-table';
-
-  const tbody = document.createElement('tbody');
-
-  function createRows(items, level = 0) {
-    items.forEach((item, index) => {
-      const row = document.createElement('tr');
-      row.className = `tree-row level-${level}`;
-      row.dataset.level = level;
-
-      // Create expand/collapse button cell
-      const expandCell = document.createElement('td');
-      expandCell.className = 'tree-expand-cell';
-
-      if (item.children && item.children.length > 0) {
-        const expandBtn = document.createElement('button');
-        expandBtn.className = 'tree-toggle';
-        expandBtn.textContent = '▼';
-        expandBtn.dataset.expanded = 'true';
-        
-        expandBtn.addEventListener('click', (e) => {
-          const wasCollapsed = expandBtn.dataset.expanded === 'false';
-          expandBtn.dataset.expanded = wasCollapsed ? 'true' : 'false';
-          expandBtn.textContent = wasCollapsed ? '▼' : '▶';
-          
-          // Toggle visibility of all nested rows (both direct children and descendants)
-          let nextRow = row.nextElementSibling;
-          while (nextRow && parseInt(nextRow.dataset.level) > level) {
-            nextRow.style.display = wasCollapsed ? 'table-row' : 'none';
-            nextRow = nextRow.nextElementSibling;
-          }
-        });
-
-        expandCell.appendChild(expandBtn);
-      }
-
-      row.appendChild(expandCell);
-
-      // Create name cell
-      const nameCell = document.createElement('td');
-      nameCell.className = 'tree-name-cell';
-      nameCell.style.paddingLeft = (30 * level) + 'px';
-      
-      // Add emoji icon based on type
-      const emoji = getEmojiForType(item.type);
-      
-      nameCell.innerHTML = `<span style="margin-right: 6px;">${emoji}</span>${item.name}`;
-      row.appendChild(nameCell);
-
-      // Create type cell
-      const typeCell = document.createElement('td');
-      typeCell.className = 'tree-type-cell';
-      const typeSpan = document.createElement('span');
-      typeSpan.className = `type-tag type-${item.type}`;
-      typeSpan.textContent = item.type;
-      typeCell.appendChild(typeSpan);
-      row.appendChild(typeCell);
-
-      // Create value cell
-      const valueCell = document.createElement('td');
-      valueCell.className = 'tree-value-cell';
-      
-      if (item.value !== undefined) {
-        const valueSpan = document.createElement('span');
-        valueSpan.className = 'tree-value';
-        
-        if (item.type === 'string') {
-          valueSpan.textContent = `"${item.value}"`;
-          valueSpan.style.color = '#22ab94';
-        } else if (item.type === 'number') {
-          valueSpan.textContent = item.value;
-          valueSpan.style.color = '#d4a574';
-        } else if (item.type === 'boolean') {
-          valueSpan.textContent = item.value ? 'true' : 'false';
-          valueSpan.style.color = '#ff7b7b';
-        } else {
-          valueSpan.textContent = String(item.value);
+        if (!this.container) {
+            console.error(`Container with id "${containerId}" not found`);
+            return;
         }
-        
-        valueCell.appendChild(valueSpan);
-      }
-      
-      row.appendChild(valueCell);
 
-      tbody.appendChild(row);
+        this.render();
+    }
 
-      // Recursively add child rows
-      if (item.children && item.children.length > 0) {
-        createRows(item.children, level + 1);
-      }
-    });
-  }
+    /**
+     * Generate unique ID for nodes
+     */
+    getNextId() {
+        return `node-${this.nodeId++}`;
+    }
 
-  createRows(data.children || [data]);
-  table.appendChild(tbody);
-  parentElement.appendChild(table);
-}
+    /**
+     * Check if a value is an object (but not array, null, or date)
+     */
+    isObject(value) {
+        return (
+            value !== null &&
+            typeof value === 'object' &&
+            !Array.isArray(value) &&
+            !(value instanceof Date) &&
+            !(value instanceof RegExp)
+        );
+    }
 
-// Get emoji icon based on data type
-function getEmojiForType(type) {
-  const emojiMap = {
-    'object': '📁',
-    'array': '📋',
-    'string': '📄',
-    'number': '🔢',
-    'boolean': '☑️'
-  };
-  return emojiMap[type] || '📦';
-}
+    /**
+     * Check if value is a container (has children)
+     */
+    isContainer(value) {
+        if (Array.isArray(value)) {
+            return value.length > 0;
+        }
+        if (this.isObject(value)) {
+            return Object.keys(value).length > 0;
+        }
+        return false;
+    }
 
-// Allow loading custom JSON
-function loadCustomJson(jsonString) {
-  try {
-    treeData = JSON.parse(jsonString);
-    renderTreeView(treeData);
-  } catch (error) {
-    console.error('Invalid JSON:', error);
-    alert('Invalid JSON format');
-  }
+    /**
+     * Get all keys/indices from a value
+     */
+    getKeys(value) {
+        if (Array.isArray(value)) {
+            return value.map((_, index) => index);
+        }
+        if (this.isObject(value)) {
+            return Object.keys(value).sort();
+        }
+        return [];
+    }
+
+    /**
+     * Format value for display
+     */
+    formatValue(value) {
+        if (value === null) return 'null';
+        if (value === undefined) return 'undefined';
+        if (typeof value === 'string') return `"${value}"`;
+        if (typeof value === 'boolean') return value ? 'true' : 'false';
+        if (typeof value === 'number') return value.toString();
+        if (Array.isArray(value)) return `Array(${value.length})`;
+        if (this.isObject(value)) {
+            const keys = Object.keys(value).length;
+            return `{${keys} items}`;
+        }
+        return String(value);
+    }
+
+    /**
+     * Create tree structure
+     */
+    createTreeItem(key, value, depth, isLast, parentePath = '') {
+        const itemId = this.getNextId();
+        const isContainer = this.isContainer(value);
+        const itemPath = parentePath ? `${parentePath}.${key}` : key;
+
+        // Create main item wrapper
+        const itemWrapper = document.createElement('div');
+        itemWrapper.dataset.itemId = itemId;
+
+        // Create the line for this item
+        const lineDiv = document.createElement('div');
+        lineDiv.className = 'tree-line';
+
+        // Create indentation with tree lines
+        const indentContainer = document.createElement('div');
+        indentContainer.style.display = 'flex';
+        indentContainer.style.alignItems = 'center';
+
+        // Add tree lines for ancestors
+        for (let i = 0; i < depth; i++) {
+            const indent = document.createElement('div');
+            indent.style.width = '18px';
+            indent.style.height = '18px';
+            indent.style.position = 'relative';
+
+            // Vertical line
+            const vline = document.createElement('div');
+            vline.style.position = 'absolute';
+            vline.style.width = '1px';
+            vline.style.height = '9px';
+            vline.style.left = '8px';
+            vline.style.top = '4px';
+            vline.style.background = '#c0c0c0';
+
+            // Horizontal line (connection line)
+            const hline = document.createElement('div');
+            hline.style.position = 'absolute';
+            hline.style.height = '1px';
+            hline.style.width = '9px';
+            hline.style.left = '8px';
+            hline.style.top = '8px';
+            hline.style.background = '#c0c0c0';
+
+            indent.appendChild(vline);
+            indent.appendChild(hline);
+            indentContainer.appendChild(indent);
+        }
+
+        // Add toggle button or spacer
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.width = '18px';
+        buttonContainer.style.height = '18px';
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.alignItems = 'center';
+        buttonContainer.style.justifyContent = 'center';
+        buttonContainer.style.position = 'relative';
+        buttonContainer.style.flexShrink = '0';
+
+        if (isContainer) {
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'toggle-btn';
+            toggleBtn.textContent = '+';
+            toggleBtn.id = `btn-${itemId}`;
+            toggleBtn.title = 'Expand/Collapse';
+
+            const isExpanded = this.expandedNodes.has(itemId);
+            if (isExpanded) {
+                toggleBtn.textContent = '−';
+            }
+
+            toggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleNode(itemId);
+            });
+
+            buttonContainer.appendChild(toggleBtn);
+        }
+
+        indentContainer.appendChild(buttonContainer);
+
+        // Add icon
+        const icon = document.createElement('div');
+        icon.className = 'icon';
+        icon.id = `icon-${itemId}`;
+        if (isContainer) {
+            const isExpanded = this.expandedNodes.has(itemId);
+            icon.className += isExpanded ? ' folder-open-icon' : ' folder-icon';
+        } else {
+            icon.className += ' file-icon';
+        }
+
+        // Add label
+        const label = document.createElement('span');
+        label.className = 'item-label';
+        label.textContent = key;
+
+        // Add value display
+        const valueSpan = document.createElement('span');
+        valueSpan.className = 'item-value';
+        valueSpan.textContent = ` : ${this.formatValue(value)}`;
+
+        lineDiv.appendChild(indentContainer);
+        lineDiv.appendChild(icon);
+        lineDiv.appendChild(label);
+        lineDiv.appendChild(valueSpan);
+
+        itemWrapper.appendChild(lineDiv);
+
+        // Container for children
+        if (isContainer) {
+            const childrenContainer = document.createElement('div');
+            childrenContainer.className = 'children';
+            childrenContainer.id = `children-${itemId}`;
+
+            const isExpanded = this.expandedNodes.has(itemId);
+            if (isExpanded) {
+                childrenContainer.classList.add('open');
+            }
+
+            const keys = this.getKeys(value);
+            keys.forEach((childKey, index) => {
+                const childValue = value[childKey];
+                const childItem = this.createTreeItem(
+                    childKey,
+                    childValue,
+                    depth + 1,
+                    index === keys.length - 1,
+                    itemPath
+                );
+                childrenContainer.appendChild(childItem);
+            });
+
+            itemWrapper.appendChild(childrenContainer);
+        }
+
+        return itemWrapper;
+    }
+
+    /**
+     * Toggle node expansion
+     */
+    toggleNode(itemId) {
+        if (this.expandedNodes.has(itemId)) {
+            this.expandedNodes.delete(itemId);
+        } else {
+            this.expandedNodes.add(itemId);
+        }
+
+        // Update button text
+        const button = document.getElementById(`btn-${itemId}`);
+        if (button) {
+            button.textContent = this.expandedNodes.has(itemId) ? '−' : '+';
+        }
+
+        // Update children visibility
+        const childrenContainer = document.getElementById(`children-${itemId}`);
+        if (childrenContainer) {
+            childrenContainer.classList.toggle('open');
+        }
+
+        // Update icon
+        const icon = document.getElementById(`icon-${itemId}`);
+        if (icon) {
+            if (this.expandedNodes.has(itemId)) {
+                icon.classList.remove('folder-icon');
+                icon.classList.add('folder-open-icon');
+            } else {
+                icon.classList.remove('folder-open-icon');
+                icon.classList.add('folder-icon');
+            }
+        }
+    }
+
+    /**
+     * Render the tree
+     */
+    render() {
+        this.container.innerHTML = '';
+        const keys = this.getKeys(this.data);
+
+        keys.forEach((key, index) => {
+            const value = this.data[key];
+            const item = this.createTreeItem(key, value, 0, index === keys.length - 1);
+            this.container.appendChild(item);
+        });
+    }
+
+    /**
+     * Expand all nodes recursively
+     */
+    expandAll() {
+        const buttons = this.container.querySelectorAll('.toggle-btn');
+        buttons.forEach((btn) => {
+            const itemId = btn.id.replace('btn-', '');
+            if (!this.expandedNodes.has(itemId)) {
+                this.toggleNode(itemId);
+            }
+        });
+    }
+
+    /**
+     * Collapse all nodes
+     */
+    collapseAll() {
+        const buttons = this.container.querySelectorAll('.toggle-btn');
+        buttons.forEach((btn) => {
+            const itemId = btn.id.replace('btn-', '');
+            if (this.expandedNodes.has(itemId)) {
+                this.toggleNode(itemId);
+            }
+        });
+    }
 }
