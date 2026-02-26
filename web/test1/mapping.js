@@ -43,6 +43,15 @@ class GridCanvas {
         this.isSelecting = false;
         this.selectionStart = null;
 
+        // Region dragging state
+        this.isDraggingRegion = false;
+        this.draggedRegion = null;
+        this.dragStartBitIndex = 0;
+        this.dragStartRow = 0;
+        this.dragOriginalAddress = 0;
+        this.dragOriginalStartBit = 0;
+        this.dragOriginalEndBit = 0;
+
         // Region overlays (index 0 reserved for selection)
         this.regions = [{ address: 0, startBit: 0, endBit: -1 }];
         this.regionsUrl = config.regionsUrl || 'regions.json';
@@ -289,6 +298,24 @@ class GridCanvas {
             return;
         }
 
+        // Start region drag with ctrl+left click on hovered region
+        if (event.button === 0 && event.ctrlKey && this.hoveredRegion && this.hoveredRegion !== this.regions[0]) {
+            event.preventDefault();
+            const cellAndBit = this.getCellAndBitFromMouse(event);
+            if (cellAndBit) {
+                const bitFromLeft = (this.BITS_PER_CELL - 1) - cellAndBit.bitidx;
+                this.dragStartBitIndex = cellAndBit.col * this.BITS_PER_CELL + bitFromLeft;
+                this.dragStartRow = cellAndBit.row;
+                this.isDraggingRegion = true;
+                this.draggedRegion = this.hoveredRegion;
+                this.dragOriginalAddress = this.hoveredRegion.address;
+                this.dragOriginalStartBit = this.hoveredRegion.startBit;
+                this.dragOriginalEndBit = this.hoveredRegion.endBit;
+                this.canvas.style.cursor = 'move';
+            }
+            return;
+        }
+
         // Start selection with left mouse button
         if (event.button === 0) {
             const cellAndBit = this.getCellAndBitFromMouse(event);
@@ -325,10 +352,42 @@ class GridCanvas {
             return;
         }
 
+        // Handle region dragging
+        if (this.isDraggingRegion && this.draggedRegion) {
+            const cellAndBit = this.getCellAndBitFromMouse(event);
+            if (cellAndBit) {
+                const bitFromLeft = (this.BITS_PER_CELL - 1) - cellAndBit.bitidx;
+                const currentBitIndex = cellAndBit.col * this.BITS_PER_CELL + bitFromLeft;
+                const bitOffset = currentBitIndex - this.dragStartBitIndex;
+                const rowOffset = cellAndBit.row - this.dragStartRow;
+                
+                const regionLength = this.dragOriginalEndBit - this.dragOriginalStartBit;
+                const maxBit = this.COLS * this.BITS_PER_CELL - 1;
+                
+                // Update horizontal position (bits)
+                const newStartBit = Math.max(0, Math.min(maxBit - regionLength, this.dragOriginalStartBit + bitOffset));
+                const newEndBit = Math.min(maxBit, newStartBit + regionLength);
+                
+                // Update vertical position (row/address)
+                const originalCell = this.getRowColFromIndex(this.dragOriginalAddress);
+                if (originalCell) {
+                    const newRow = Math.max(0, Math.min(this.ROWS - 1, originalCell.row + rowOffset));
+                    const newAddress = newRow * this.COLS + originalCell.col;
+                    this.draggedRegion.address = newAddress;
+                }
+                
+                this.draggedRegion.startBit = newStartBit;
+                this.draggedRegion.endBit = newEndBit;
+                this.drawGrid();
+            }
+            return;
+        }
+
         const hoveredRegion = this.getRegionFromMouse(event);
         const regionChanged = hoveredRegion !== this.hoveredRegion;
         if (regionChanged) {
             this.hoveredRegion = hoveredRegion;
+            this.canvas.style.cursor = (hoveredRegion && hoveredRegion !== this.regions[0]) ? 'grab' : 'grab';
         }
 
         // Handle selection drag
@@ -398,6 +457,12 @@ class GridCanvas {
             this.canvas.style.cursor = 'grab';
         }
 
+        if (this.isDraggingRegion) {
+            this.isDraggingRegion = false;
+            this.draggedRegion = null;
+            this.canvas.style.cursor = 'grab';
+        }
+
         if (this.isSelecting) {
             this.isSelecting = false;
             this.selectionStart = null;
@@ -405,11 +470,14 @@ class GridCanvas {
     }
 
     /**
-     * HandlehoveredBitIdx = null;
-        this. mouse leave event
+     * Handle mouse leave event
      */
     handleMouseLeave(event) {
         this.isPanning = false;
+        this.isDraggingRegion = false;
+        this.draggedRegion = null;
+        this.dragStartBitIndex = 0;
+        this.dragStartRow = 0;
         this.isSelecting = false;
         this.selectionStart = null;
         this.hoveredCell = null;
@@ -558,7 +626,7 @@ class GridCanvas {
         if (this.hoveredCell) {
             const hoveredX = this.hoveredCell.col * this.CELL_WIDTH;
             const hoveredY = this.hoveredCell.row * this.CELL_SIZE;
-            this.ctx.strokeStyle = '#e5ff00';
+            this.ctx.strokeStyle = '#ff8400';
             this.ctx.lineWidth = 2 / this.cameraZoom;
             this.ctx.strokeRect(hoveredX, hoveredY, this.CELL_WIDTH, this.CELL_SIZE);
         }
