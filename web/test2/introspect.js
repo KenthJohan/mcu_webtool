@@ -83,7 +83,7 @@ class ObjectExplorer {
     /**
      * Create tree structure
      */
-    createTreeItem(key, value, depth, isLast, parentePath = '') {
+    createTreeItem(key, value, depth, isLast, lastFlags = [], parentePath = '') {
         const itemId = this.getNextId();
         const isContainer = this.isContainer(value);
         const itemPath = parentePath ? `${parentePath}.${key}` : key;
@@ -108,26 +108,18 @@ class ObjectExplorer {
             indent.style.height = '18px';
             indent.style.position = 'relative';
 
-            // Vertical line
-            const vline = document.createElement('div');
-            vline.style.position = 'absolute';
-            vline.style.width = '1px';
-            vline.style.height = '9px';
-            vline.style.left = '8px';
-            vline.style.top = '4px';
-            vline.style.background = '#c0c0c0';
+            // Only show vertical line if this ancestor level is not the last
+            if (!lastFlags[i]) {
+                const vline = document.createElement('div');
+                vline.style.position = 'absolute';
+                vline.style.width = '1px';
+                vline.style.height = '18px';
+                vline.style.left = '8px';
+                vline.style.top = '0';
+                vline.style.background = '#c0c0c0';
+                indent.appendChild(vline);
+            }
 
-            // Horizontal line (connection line)
-            const hline = document.createElement('div');
-            hline.style.position = 'absolute';
-            hline.style.height = '1px';
-            hline.style.width = '9px';
-            hline.style.left = '8px';
-            hline.style.top = '8px';
-            hline.style.background = '#c0c0c0';
-
-            indent.appendChild(vline);
-            indent.appendChild(hline);
             indentContainer.appendChild(indent);
         }
 
@@ -161,6 +153,37 @@ class ObjectExplorer {
             buttonContainer.appendChild(toggleBtn);
         }
 
+        // Add connector line (only on the rightmost level)
+        const connectorDiv = document.createElement('div');
+        connectorDiv.style.width = '18px';
+        connectorDiv.style.height = '18px';
+        connectorDiv.style.position = 'relative';
+        connectorDiv.style.display = 'flex';
+        connectorDiv.style.alignItems = 'center';
+        connectorDiv.style.justifyContent = 'center';
+        connectorDiv.style.flexShrink = '0';
+
+        // Vertical line
+        const vline = document.createElement('div');
+        vline.style.position = 'absolute';
+        vline.style.width = '1px';
+        vline.style.height = isLast ? '9px' : '18px';
+        vline.style.left = '8px';
+        vline.style.top = isLast ? '0' : '-9px';
+        vline.style.background = '#c0c0c0';
+        connectorDiv.appendChild(vline);
+
+        // Horizontal line
+        const hline = document.createElement('div');
+        hline.style.position = 'absolute';
+        hline.style.height = '1px';
+        hline.style.width = '9px';
+        hline.style.left = '8px';
+        hline.style.top = '8px';
+        hline.style.background = '#c0c0c0';
+        connectorDiv.appendChild(hline);
+
+        indentContainer.appendChild(connectorDiv);
         indentContainer.appendChild(buttonContainer);
 
         // Add icon
@@ -205,11 +228,14 @@ class ObjectExplorer {
             const keys = this.getKeys(value);
             keys.forEach((childKey, index) => {
                 const childValue = value[childKey];
+                // Build the lastFlags array for this child
+                const childLastFlags = [...lastFlags, isLast];
                 const childItem = this.createTreeItem(
                     childKey,
                     childValue,
                     depth + 1,
                     index === keys.length - 1,
+                    childLastFlags,
                     itemPath
                 );
                 childrenContainer.appendChild(childItem);
@@ -265,7 +291,7 @@ class ObjectExplorer {
 
         keys.forEach((key, index) => {
             const value = this.data[key];
-            const item = this.createTreeItem(key, value, 0, index === keys.length - 1);
+            const item = this.createTreeItem(key, value, 0, index === keys.length - 1, [], '');
             this.container.appendChild(item);
         });
     }
