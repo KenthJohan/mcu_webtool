@@ -63,6 +63,10 @@ class GridCanvas {
         this.handleMouseUp = this.handleMouseUp.bind(this);
         this.handleWheel = this.handleWheel.bind(this);
         this.handleMouseLeave = this.handleMouseLeave.bind(this);
+        this.handleContextMenu = this.handleContextMenu.bind(this);
+
+
+        this.canvas.style.cursor = 'default';
 
         // Setup event listeners
         this.setupEventListeners();
@@ -153,6 +157,7 @@ class GridCanvas {
         this.canvas.addEventListener('mouseup', this.handleMouseUp);
         this.canvas.addEventListener('wheel', this.handleWheel, { passive: false });
         this.canvas.addEventListener('mouseleave', this.handleMouseLeave);
+        this.canvas.addEventListener('contextmenu', this.handleContextMenu);
     }
 
     /**
@@ -286,8 +291,8 @@ class GridCanvas {
      * Handle mouse down event
      */
     handleMouseDown(event) {
-        // Handle panning with middle mouse button or shift+left click
-        if (event.button === 1 || (event.button === 0 && event.shiftKey)) {
+        // Handle panning with right mouse button
+        if (event.button === 2) {
             event.preventDefault();
             this.isPanning = true;
             this.panStartX = event.clientX;
@@ -298,8 +303,8 @@ class GridCanvas {
             return;
         }
 
-        // Start region drag with ctrl+left click on hovered region
-        if (event.button === 0 && event.ctrlKey && this.hoveredRegion && this.hoveredRegion !== this.regions[0]) {
+        // Start region drag with left click on hovered region
+        if (event.button === 0 && this.hoveredRegion) {
             event.preventDefault();
             const cellAndBit = this.getCellAndBitFromMouse(event);
             if (cellAndBit) {
@@ -316,8 +321,8 @@ class GridCanvas {
             return;
         }
 
-        // Start selection with left mouse button
-        if (event.button === 0) {
+        // Start selection with left mouse button (only if not over a region)
+        if (event.button === 0 && !this.hoveredRegion) {
             const cellAndBit = this.getCellAndBitFromMouse(event);
             if (cellAndBit) {
                 const startIndex = cellAndBit.row * this.COLS + cellAndBit.col;
@@ -387,7 +392,7 @@ class GridCanvas {
         const regionChanged = hoveredRegion !== this.hoveredRegion;
         if (regionChanged) {
             this.hoveredRegion = hoveredRegion;
-            this.canvas.style.cursor = (hoveredRegion && hoveredRegion !== this.regions[0]) ? 'grab' : 'grab';
+            this.canvas.style.cursor = (hoveredRegion) ? 'grab' : 'default';
         }
 
         // Handle selection drag
@@ -454,13 +459,13 @@ class GridCanvas {
     handleMouseUp(event) {
         if (this.isPanning) {
             this.isPanning = false;
-            this.canvas.style.cursor = 'grab';
+            this.canvas.style.cursor = this.hoveredRegion && this.hoveredRegion !== this.regions[0] ? 'grab' : 'default';
         }
 
         if (this.isDraggingRegion) {
             this.isDraggingRegion = false;
             this.draggedRegion = null;
-            this.canvas.style.cursor = 'grab';
+            this.canvas.style.cursor = this.hoveredRegion && this.hoveredRegion !== this.regions[0] ? 'grab' : 'default';
         }
 
         if (this.isSelecting) {
@@ -483,8 +488,15 @@ class GridCanvas {
         this.hoveredCell = null;
         this.hoveredRegion = null;
         this.updateCellInfo(null);
-        this.canvas.style.cursor = 'grab';
+        this.canvas.style.cursor = 'default';
         this.drawGrid();
+    }
+
+    /**
+     * Handle context menu event (prevent default on right-click)
+     */
+    handleContextMenu(event) {
+        event.preventDefault();
     }
 
     /**
