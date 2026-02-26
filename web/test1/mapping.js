@@ -41,10 +41,9 @@ class GridCanvas {
         // Selection state (single row, contiguous bits)
         this.isSelecting = false;
         this.selectionStart = null;
-        this.selection = null;
 
-        // Region overlays
-        this.regions = [];
+        // Region overlays (index 0 reserved for selection)
+        this.regions = [{ address: 0, startBit: 0, endBit: -1 }];
         this.regionsUrl = config.regionsUrl || 'regions.json';
         this.loadRegions(this.regionsUrl);
 
@@ -88,9 +87,11 @@ class GridCanvas {
             .then((response) => response.json())
             .then((data) => {
                 const list = Array.isArray(data) ? data : (data && Array.isArray(data.regions) ? data.regions : []);
-                this.regions = list
+                const selectionRegion = this.regions[0];
+                const overlays = list
                     .map((region) => this.normalizeRegion(region))
                     .filter(Boolean);
+                this.regions = [selectionRegion, ...overlays];
                 this.drawGrid();
             })
             .catch((error) => {
@@ -266,7 +267,7 @@ class GridCanvas {
                     col: cellAndBit.col,
                     bitidx: cellAndBit.bitidx
                 };
-                this.selection = {
+                this.regions[0] = {
                     address: startIndex,
                     startBit: cellAndBit.col * this.BITS_PER_CELL + bitPosFromLeft,
                     endBit: cellAndBit.col * this.BITS_PER_CELL + bitPosFromLeft
@@ -299,7 +300,7 @@ class GridCanvas {
                 const endFromLeft = (this.BITS_PER_CELL - 1) - cellAndBit.bitidx;
                 const start = this.selectionStart.col * this.BITS_PER_CELL + startFromLeft;
                 const end = cellAndBit.col * this.BITS_PER_CELL + endFromLeft;
-                this.selection = {
+                this.regions[0] = {
                     address: this.selectionStart.index,
                     startBit: Math.min(start, end),
                     endBit: Math.max(start, end)
@@ -463,19 +464,6 @@ class GridCanvas {
         this.ctx.rect(bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top);
         this.ctx.clip();
 
-        // Draw cells
-        for (let row = startRow; row <= endRow; row++) {
-            for (let col = startCol; col <= endCol; col++) {
-                const x = col * this.CELL_WIDTH;
-                const y = row * this.CELL_SIZE;
-
-                // Fill cell
-                this.ctx.fillStyle = '#ffffff';
-                this.ctx.fillRect(x, y, this.CELL_WIDTH, this.CELL_SIZE);
-
-            }
-        }
-
         // Draw grid lines
         this.ctx.beginPath();
 
@@ -532,15 +520,10 @@ class GridCanvas {
             this.ctx.strokeRect(hoveredX, hoveredY, this.CELL_WIDTH, this.CELL_SIZE);
         }
         
-        // Fill selected bits once (more efficient than checking each cell)
-        if (this.selection) {
-            this.fillBits(this.selection.address, this.selection.startBit, this.selection.endBit);
-        }
-
-        if (this.regions.length > 0) {
-            for (const region of this.regions) {
-                this.fillBits(region.address, region.startBit, region.endBit, region.color);
-            }
+        // Draw all regions (selection can be part of the list)
+        for (let i = 0; i < this.regions.length; i++) {
+            const region = this.regions[i];
+            this.fillBits(region.address, region.startBit, region.endBit, region.color);
         }
 
     }
@@ -598,27 +581,44 @@ class GridCanvas {
 
 
 
-        for (let row = startRow; row <= endRow; row++) {
-            for (let col = startCol; col <= endCol; col++) {
-                const cellX = col * this.CELL_WIDTH;
+        const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
+        const startX = startCol * this.CELL_WIDTH;
+        const endX = (endCol + 1) * this.CELL_WIDTH;
+        const startY = startRow * this.CELL_SIZE;
+        const endY = (endRow + 1) * this.CELL_SIZE;
+
+        this.ctx.beginPath();
+
+        // Horizontal lines (row boundaries)
+        for (let row = startRow; row <= endRow + 1; row++) {
+            const y = row * this.CELL_SIZE;
+            this.ctx.moveTo(startX, y);
+            this.ctx.lineTo(endX, y);
+        }
+
+        // Vertical lines (bit boundaries within each cell column)
+        for (let col = startCol; col <= endCol; col++) {
+            const cellX = col * this.CELL_WIDTH;
+            for (let bit = 0; bit <= this.BITS_PER_CELL; bit++) {
+                const x = cellX + bit * bitWidth;
+                this.ctx.moveTo(x, startY);
+                this.ctx.lineTo(x, endY);
+            }
+        }
+
+        this.ctx.stroke();
+
+        // Draw bit numbers when zoomed in very close
+        if (this.cameraZoom >= 6) {
+            this.ctx.fillStyle = '#414141';
+            this.ctx.font = `${Math.floor(bitWidth * 0.5)}px monospace`;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+
+            for (let row = startRow; row <= endRow; row++) {
                 const cellY = row * this.CELL_SIZE;
-                const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
-
-                // Draw bit rectangles within each cell
-                for (let bit = 0; bit < this.BITS_PER_CELL; bit++) {
-                    const bitX = cellX + bit * bitWidth;
-
-                    // Draw rectangle for each bit
-                    this.ctx.strokeRect(bitX, cellY, bitWidth, this.CELL_SIZE);
-                }
-
-                // Draw bit numbers when zoomed in very close
-                if (this.cameraZoom >= 6) {
-                    this.ctx.fillStyle = '#414141';
-                    this.ctx.font = `${Math.floor(bitWidth * 0.5)}px monospace`;
-                    this.ctx.textAlign = 'center';
-                    this.ctx.textBaseline = 'middle';
-
+                for (let col = startCol; col <= endCol; col++) {
+                    const cellX = col * this.CELL_WIDTH;
                     for (let bit = 0; bit < this.BITS_PER_CELL; bit++) {
                         const bitX = cellX + bit * bitWidth + bitWidth / 2;
                         const bitY = cellY + this.CELL_SIZE / 2;
