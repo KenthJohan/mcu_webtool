@@ -37,6 +37,7 @@ class GridCanvas {
         // Current hovered cell
         this.hoveredCell = null;
         this.hoveredBitIdx = null;
+        this.hoveredRegion = null;
 
         // Selection state (single row, contiguous bits)
         this.isSelecting = false;
@@ -240,6 +241,39 @@ class GridCanvas {
     }
 
     /**
+     * Get region under mouse (matches row and bit range)
+     * @returns {object|null}
+     */
+    getRegionFromMouse(event) {
+        const cellAndBit = this.getCellAndBitFromMouse(event);
+        if (!cellAndBit) {
+            return null;
+        }
+
+        const row = cellAndBit.row;
+        const bitFromLeft = (this.BITS_PER_CELL - 1) - cellAndBit.bitidx;
+        const bitIndex = cellAndBit.col * this.BITS_PER_CELL + bitFromLeft;
+
+        for (let i = 0; i < this.regions.length; i++) {
+            const region = this.regions[i];
+            if (!region) {
+                continue;
+            }
+
+            const regionCell = this.getRowColFromIndex(region.address);
+            if (!regionCell || regionCell.row !== row) {
+                continue;
+            }
+
+            if (bitIndex >= region.startBit && bitIndex <= region.endBit) {
+                return region;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Handle mouse down event
      */
     handleMouseDown(event) {
@@ -289,6 +323,12 @@ class GridCanvas {
             this.cameraOffsetY = this.lastPanY + deltaY;
             this.drawGrid();
             return;
+        }
+
+        const hoveredRegion = this.getRegionFromMouse(event);
+        const regionChanged = hoveredRegion !== this.hoveredRegion;
+        if (regionChanged) {
+            this.hoveredRegion = hoveredRegion;
         }
 
         // Handle selection drag
@@ -344,6 +384,8 @@ class GridCanvas {
             this.hoveredBitIdx = null;
             this.updateCellInfo(null);
             this.drawGrid();
+        } else if (regionChanged) {
+            this.drawGrid();
         }
     }
 
@@ -371,6 +413,7 @@ class GridCanvas {
         this.isSelecting = false;
         this.selectionStart = null;
         this.hoveredCell = null;
+        this.hoveredRegion = null;
         this.updateCellInfo(null);
         this.canvas.style.cursor = 'grab';
         this.drawGrid();
@@ -515,7 +558,7 @@ class GridCanvas {
         if (this.hoveredCell) {
             const hoveredX = this.hoveredCell.col * this.CELL_WIDTH;
             const hoveredY = this.hoveredCell.row * this.CELL_SIZE;
-            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.strokeStyle = '#e5ff00';
             this.ctx.lineWidth = 2 / this.cameraZoom;
             this.ctx.strokeRect(hoveredX, hoveredY, this.CELL_WIDTH, this.CELL_SIZE);
         }
@@ -524,6 +567,16 @@ class GridCanvas {
         for (let i = 0; i < this.regions.length; i++) {
             const region = this.regions[i];
             this.fillBits(region.address, region.startBit, region.endBit, region.color);
+        }
+
+        if (this.hoveredRegion) {
+            this.ctx.strokeStyle = '#ff0000';
+            this.ctx.lineWidth = 2 / this.cameraZoom;
+            this.strokeBits(
+                this.hoveredRegion.address,
+                this.hoveredRegion.startBit,
+                this.hoveredRegion.endBit
+            );
         }
 
     }
@@ -564,6 +617,24 @@ class GridCanvas {
                 this.ctx.fillRect(bitX, cellY, bitWidth, this.CELL_SIZE);
             }
         }
+    }
+
+    /**
+     * Stroke bits in a row (single row, contiguous bits)
+     */
+    strokeBits(address, startBit, endBit) {
+        const cell = this.getRowColFromIndex(address);
+        if (!cell) {
+            return;
+        }
+
+        const row = cell.row;
+        const bitWidth = this.CELL_WIDTH / this.BITS_PER_CELL;
+        const cellY = row * this.CELL_SIZE;
+        const leftX = startBit * bitWidth;
+        const width = (endBit - startBit + 1) * bitWidth;
+
+        this.ctx.strokeRect(leftX, cellY, width, this.CELL_SIZE);
     }
 
     /**
