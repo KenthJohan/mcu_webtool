@@ -3,320 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Object Explorer - Windows 98 Style</title>
+    <title>Object Tree Explorer</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
         body {
-            font-family: "MS Sans Serif", Arial, sans-serif;
-            font-size: 11px;
-            background: #c0c0c0;
-            padding: 10px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            margin: 0;
         }
-
-        .window {
-            background: #c0c0c0;
-            border: 1px solid;
-            border-color: #dfdfdf #808080 #808080 #dfdfdf;
-            box-shadow: 1px 1px 0 #ffffff inset, 1px 1px 0 #000000;
-            padding: 2px;
-            margin: 10px;
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
-
-        .title-bar {
-            background: linear-gradient(to right, #000080, #1084d7);
+        
+        h1 {
             color: white;
-            padding: 2px 2px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 11px;
+            text-align: center;
+            margin-bottom: 30px;
         }
-
-        .title-bar-controls {
-            display: flex;
-            gap: 2px;
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
         }
-
-        .btn-minimize, .btn-maximize, .btn-close {
-            width: 16px;
-            height: 14px;
-            background: #c0c0c0;
-            border: 1px solid;
-            border-color: #dfdfdf #808080 #808080 #dfdfdf;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 10px;
-            font-weight: bold;
-        }
-
-        .btn-minimize:active, .btn-maximize:active, .btn-close:active {
-            border-color: #808080 #dfdfdf #dfdfdf #808080;
-        }
-
-        .content {
-            background: #c0c0c0;
-            padding: 4px;
-        }
-
-        .menu-bar {
-            background: #c0c0c0;
-            border-bottom: 1px solid #dfdfdf;
-            display: flex;
-            padding: 2px;
-            gap: 10px;
-        }
-
-        .menu-item {
-            padding: 2px 4px;
-            cursor: pointer;
-            user-select: none;
-        }
-
-        .menu-item:hover {
-            background: #000080;
-            color: white;
-        }
-
-        .tree-container {
+        
+        .card {
             background: white;
-            border: 1px solid;
-            border-color: #808080 #dfdfdf #dfdfdf #808080;
-            padding: 4px;
-            margin: 4px 0;
-            font-family: "Courier New", monospace;
-            font-size: 11px;
-            overflow-x: auto;
-            max-height: 600px;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card h2 {
+            margin-top: 0;
+            color: #333;
+            font-size: 18px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .tree-output {
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
             overflow-y: auto;
         }
-
-        .tree-line {
-            display: flex;
-            align-items: center;
-            height: 18px;
-            white-space: nowrap;
-            user-select: none;
-            position: relative;
-        }
-
-        .tree-indent {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 18px;
-            height: 18px;
-            flex-shrink: 0;
-        }
-
-        .tree-lines {
-            position: relative;
-            display: inline-block;
-            width: 18px;
-            height: 18px;
-        }
-
-        .tree-lines::before {
-            content: '';
-            position: absolute;
-            width: 1px;
-            height: 100%;
-            left: 50%;
-            top: 0;
-            background: #808080;
-        }
-
-        .tree-lines::after {
-            content: '';
-            position: absolute;
-            width: 50%;
-            height: 1px;
-            left: 50%;
-            top: 50%;
-            background: #808080;
-        }
-
-        .toggle-btn {
-            width: 16px;
-            height: 16px;
-            padding: 0;
+        
+        pre {
             margin: 0;
-            background: #c0c0c0;
-            border: 1px solid;
-            border-color: #dfdfdf #808080 #808080 #dfdfdf;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 9px;
-            font-weight: bold;
-            user-select: none;
-            flex-shrink: 0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #333;
         }
-
-        .toggle-btn:hover {
-            background: #e0e0e0;
+        
+        .input-section {
+            margin-bottom: 20px;
         }
-
-        .toggle-btn:active {
-            border-color: #808080 #dfdfdf #dfdfdf #808080;
-        }
-
-        .icon {
-            width: 16px;
-            height: 16px;
-            margin-right: 2px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 9px;
-            flex-shrink: 0;
-        }
-
-        .folder-icon::before {
-            content: '📁';
-            font-size: 11px;
-        }
-
-        .folder-open-icon::before {
-            content: '📂';
-            font-size: 11px;
-        }
-
-        .file-icon::before {
-            content: '📄';
-            font-size: 11px;
-        }
-
-        .item-label {
-            cursor: default;
-            padding: 0 2px;
-            flex: 1;
-        }
-
-        .item-label:hover {
-            background: #000080;
-            color: white;
-        }
-
-        .item-value {
-            color: #008080;
-            font-weight: bold;
-            padding: 0 2px;
-        }
-
-        .children {
-            display: none;
-        }
-
-        .children.open {
-            display: block;
-        }
-
-        .status-bar {
-            background: #c0c0c0;
-            border-top: 1px solid #dfdfdf;
-            padding: 2px 4px;
-            display: flex;
-            gap: 2px;
-            font-size: 10px;
-            align-items: center;
-        }
-
-        .status-bar-item {
-            border: 1px solid;
-            border-color: #808080 #dfdfdf #dfdfdf #808080;
-            padding: 2px 4px;
-            flex: 1;
-        }
-
-        .instructions {
-            background: #c0c0c0;
+        
+        textarea {
+            width: 100%;
+            height: 150px;
             padding: 10px;
-            margin: 10px;
-            border: 1px solid #808080;
-            font-size: 11px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #5568d3;
         }
     </style>
 </head>
 <body>
-    <div class="instructions">
-        <strong>Object Explorer - Windows 98 Style</strong><br>
-        Click the <strong>+/-</strong> buttons to expand/collapse folders. Numbers are displayed as files.
-    </div>
-
-    <div class="window">
-        <div class="title-bar">
-            <span>explorer.exe</span>
-            <div class="title-bar-controls">
-                <button class="btn-minimize">_</button>
-                <button class="btn-maximize">□</button>
-                <button class="btn-close">×</button>
+    <div class="container">
+        <h1>🌳 Object Tree Explorer</h1>
+        
+        <div class="grid">
+            <!-- Load introspect.json -->
+            <div class="card">
+                <h2>📋 introspect.json</h2>
+                <div style="margin-bottom: 10px;">
+                    <button onclick="loadIntrospectJson()">Load introspect.json</button>
+                </div>
+                <div class="tree-output" id="introspectOutput"></div>
             </div>
-        </div>
-
-        <div class="content">
-            <div class="menu-bar">
-                <div class="menu-item">File</div>
-                <div class="menu-item">Edit</div>
-                <div class="menu-item">View</div>
-                <div class="menu-item">Tools</div>
-                <div class="menu-item">Help</div>
-            </div>
-
-            <div class="tree-container" id="tree-root"></div>
-
-            <div class="status-bar">
-                <div class="status-bar-item">Ready</div>
+            
+            <!-- Custom Input -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <h2>🔧 Custom Object Explorer</h2>
+                <div class="input-section">
+                    <div style="margin-bottom: 10px;">Enter a valid JSON object:</div>
+                    <textarea id="customInput">{
+  "name": "John",
+  "age": 30,
+  "hobbies": ["reading", "coding", "gaming"]
+}</textarea>
+                    <button onclick="exploreCustom()">Explore</button>
+                </div>
+                <div class="tree-output" id="customOutput"></div>
             </div>
         </div>
     </div>
 
     <script src="introspect.js"></script>
     <script>
-        // Sample data to explore
-        const sampleData = {
-            name: 'root',
-            user: {
-                id: 1,
-                profile: {
-                    firstName: 'John',
-                    lastName: 'Doe',
-                    age: 30,
-                    settings: {
-                        theme: 'dark',
-                        notifications: true,
-                        volume: 75
-                    }
-                },
-                scores: {
-                    math: 95,
-                    english: 87,
-                    science: 92
-                }
-            },
-            system: {
-                version: '1.0.0',
-                memory: 8192,
-                cpu: {
-                    cores: 4,
-                    speed: 3200,
-                    architecture: 'x64'
-                }
-            },
-            count: 42,
-            active: true
-        };
+        // Load introspect.json on request
+        function loadIntrospectJson() {
+            fetch('introspect.json')
+                .then(response => response.json())
+                .then(data => {
+                    renderObjectTree(data, document.getElementById('introspectOutput'));
+                })
+                .catch(error => {
+                    const output = document.getElementById('introspectOutput');
+                    output.innerHTML = '<pre style="color: red;">Error loading introspect.json: ' + error.message + '</pre>';
+                });
+        }
 
-        // Initialize the explorer
-        const explorer = new ObjectExplorer('tree-root', sampleData);
+        // Custom explorer function
+        function exploreCustom() {
+            try {
+                const input = document.getElementById('customInput').value;
+                const obj = JSON.parse(input);
+                renderObjectTree(obj, document.getElementById('customOutput'));
+            } catch (error) {
+                const output = document.getElementById('customOutput');
+                output.innerHTML = '<pre style="color: red;">Error: ' + error.message + '</pre>';
+            }
+        }
+        
+        // Initialize custom output
+        exploreCustom();
     </script>
 </body>
 </html>
