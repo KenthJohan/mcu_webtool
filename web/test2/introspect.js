@@ -23,11 +23,11 @@ const TOGGLE_BUTTON_SIZE = 10;
  * Mapping of data types to icon file paths
  */
 const TYPE_ICONS = {
-  'object': './icons/icons_w95/w95_5.ico',
-  'array': './icons/icons_w95/w95_6.ico',
-  'string': './icons/icons_w95/w95_7.ico',
-  'number': './icons/icons_w95/w95_8.ico',
-  'boolean': './icons/icons_w95/w95_9.ico'
+  'object': '../icons/icons_w95/w95_5.ico',
+  'array': '../icons/icons_w98/w98_directory_open_file_mydocs.ico',
+  'string': '../icons/icons_w98/w98_font_opentype.ico',
+  'number': '../icons/icons_w98/w98_address_book_card.ico',
+  'boolean': '../icons/icons_w98/w98_address_book_card.ico'
 };
 
 let TREE_LEFT_COLUMN_WIDTH = 320;
