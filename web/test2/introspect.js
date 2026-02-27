@@ -63,24 +63,32 @@ function objectToTree(node, prefixImages = [], isLast = true) {
       line.appendChild(img);
     });
     
-    // Add connector image
+    // Add connector image with optional toggle button overlay
+    const connectorContainer = document.createElement('div');
+    connectorContainer.style.position = 'relative';
+    connectorContainer.style.width = '16px';
+    connectorContainer.style.height = '24px';
+    connectorContainer.style.flexShrink = '0';
+    
     const connectorImg = document.createElement('img');
     connectorImg.src = isLast ? TREE_IMAGES.corner : TREE_IMAGES.tee;
     connectorImg.style.width = '16px';
     connectorImg.style.height = '24px';
-    connectorImg.style.flexShrink = '0';
-    line.appendChild(connectorImg);
+    connectorImg.style.display = 'block';
+    connectorContainer.appendChild(connectorImg);
+    line.appendChild(connectorContainer);
 
     let childrenContainer = null;
     if (hasChildren) {
       const toggleButton = document.createElement('img');
       toggleButton.src = TREE_IMAGES.expanded;
-      toggleButton.style.width = '16px';
-      toggleButton.style.height = '16px';
-      toggleButton.style.flexShrink = '0';
+      toggleButton.style.width = '10px';
+      toggleButton.style.height = '10px';
+      toggleButton.style.position = 'absolute';
+      toggleButton.style.top = '6px';
+      toggleButton.style.left = '3px';
       toggleButton.style.cursor = 'pointer';
-      toggleButton.style.marginTop = '4px';
-      line.appendChild(toggleButton);
+      connectorContainer.appendChild(toggleButton);
 
       childrenContainer = document.createElement('div');
       childrenContainer.style.display = '';
@@ -195,13 +203,20 @@ function objectToTree(node, prefixImages = [], isLast = true) {
       line.appendChild(img);
     });
     
-    // Add connector image
+    // Add connector image with optional toggle button overlay
+    const connectorContainer = document.createElement('div');
+    connectorContainer.style.position = 'relative';
+    connectorContainer.style.width = '16px';
+    connectorContainer.style.height = '24px';
+    connectorContainer.style.flexShrink = '0';
+    
     const connectorImg = document.createElement('img');
     connectorImg.src = isLastItem ? TREE_IMAGES.corner : TREE_IMAGES.tee;
     connectorImg.style.width = '16px';
     connectorImg.style.height = '24px';
-    connectorImg.style.flexShrink = '0';
-    line.appendChild(connectorImg);
+    connectorImg.style.display = 'block';
+    connectorContainer.appendChild(connectorImg);
+    line.appendChild(connectorContainer);
     
     // Add key
     const keySpan = document.createElement('span');
@@ -214,10 +229,11 @@ function objectToTree(node, prefixImages = [], isLast = true) {
       toggleButton.src = TREE_IMAGES.expanded;
       toggleButton.style.width = '16px';
       toggleButton.style.height = '16px';
-      toggleButton.style.flexShrink = '0';
+      toggleButton.style.position = 'absolute';
+      toggleButton.style.top = '4px';
+      toggleButton.style.left = '0';
       toggleButton.style.cursor = 'pointer';
-      toggleButton.style.marginTop = '4px';
-      line.appendChild(toggleButton);
+      connectorContainer.appendChild(toggleButton);
 
       childrenContainer = document.createElement('div');
       childrenContainer.style.display = '';
