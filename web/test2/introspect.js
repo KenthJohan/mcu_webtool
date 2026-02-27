@@ -9,6 +9,17 @@ const TREE_IMAGES = {
 };
 
 /**
+ * Mapping of data types to icon file paths
+ */
+const TYPE_ICONS = {
+  'object': './icons/w95_5.ico',
+  'array': './icons/w98_address_book_cards.ico',
+  'string': './icons/w98_write_file.ico',
+  'number': './icons/w98_calculator.ico',
+  'boolean': './icons/w98_battery.ico'
+};
+
+/**
  * Recursively converts a node (with name, type, value structure) into a tree
  * @param {*} node - The node object or primitive to explore
  * @param {Array} prefixImages - Array of image types for the prefix
@@ -55,11 +66,24 @@ function objectToTree(node, prefixImages = [], isLast = true) {
     connectorImg.style.flexShrink = '0';
     line.appendChild(connectorImg);
     
-    // Add label with name and type
+    // Add label with name and type icon
     const label = document.createElement('span');
-    label.textContent = node.name + ' (' + node.type + ')';
+    label.textContent = node.name;
     label.style.lineHeight = '24px';
+    label.style.marginRight = '8px';
     line.appendChild(label);
+    
+    // Add type icon if available
+    if (node.type in TYPE_ICONS) {
+      const typeIcon = document.createElement('img');
+      typeIcon.src = TYPE_ICONS[node.type];
+      typeIcon.title = node.type;
+      typeIcon.style.width = '16px';
+      typeIcon.style.height = '16px';
+      typeIcon.style.lineHeight = '24px';
+      typeIcon.style.verticalAlign = 'middle';
+      line.appendChild(typeIcon);
+    }
     
     container.appendChild(line);
     
