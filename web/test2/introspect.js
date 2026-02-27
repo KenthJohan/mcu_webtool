@@ -12,11 +12,11 @@ const TREE_IMAGES = {
  * Mapping of data types to icon file paths
  */
 const TYPE_ICONS = {
-  'object': './icons/w95_5.ico',
-  'array': './icons/w98_address_book_cards.ico',
-  'string': './icons/w98_write_file.ico',
-  'number': './icons/w98_calculator.ico',
-  'boolean': './icons/w98_battery.ico'
+  'object': './icons/icons_w95/w95_5.ico',
+  'array': './icons/icons_w95/w95_6.ico',
+  'string': './icons/icons_w95/w95_7.ico',
+  'number': './icons/icons_w95/w95_8.ico',
+  'boolean': './icons/icons_w95/w95_9.ico'
 };
 
 /**
@@ -66,12 +66,6 @@ function objectToTree(node, prefixImages = [], isLast = true) {
     connectorImg.style.flexShrink = '0';
     line.appendChild(connectorImg);
     
-    // Add label with name and type icon
-    const label = document.createElement('span');
-    label.textContent = node.name;
-    label.style.lineHeight = '24px';
-    label.style.marginRight = '8px';
-    line.appendChild(label);
     
     // Add type icon if available
     if (node.type in TYPE_ICONS) {
@@ -80,10 +74,16 @@ function objectToTree(node, prefixImages = [], isLast = true) {
       typeIcon.title = node.type;
       typeIcon.style.width = '16px';
       typeIcon.style.height = '16px';
-      typeIcon.style.lineHeight = '24px';
-      typeIcon.style.verticalAlign = 'middle';
+      typeIcon.style.flexShrink = '0';
       line.appendChild(typeIcon);
     }
+    
+    // Add label with name
+    const label = document.createElement('span');
+    label.textContent = node.name;
+    label.style.lineHeight = '24px';
+    label.style.marginRight = '8px';
+    line.appendChild(label);
     
     container.appendChild(line);
     
