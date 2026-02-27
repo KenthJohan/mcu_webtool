@@ -1,11 +1,11 @@
 {
   "name": "Root",
   "type": "object",
-  "children": [
+  "value": [
     {
       "name": "user",
       "type": "object",
-      "children": [
+      "value": [
         {
           "name": "id",
           "type": "number",
@@ -24,7 +24,7 @@
         {
           "name": "roles",
           "type": "array",
-          "children": [
+          "value": [
             {
               "name": "[0]",
               "type": "string",
@@ -40,7 +40,7 @@
         {
           "name": "profile",
           "type": "object",
-          "children": [
+          "value": [
             {
               "name": "firstName",
               "type": "string",
@@ -63,7 +63,7 @@
     {
       "name": "settings",
       "type": "object",
-      "children": [
+      "value": [
         {
           "name": "theme",
           "type": "string",
@@ -84,11 +84,11 @@
     {
       "name": "data",
       "type": "array",
-      "children": [
+      "value": [
         {
           "name": "[0]",
           "type": "object",
-          "children": [
+          "value": [
             {
               "name": "id",
               "type": "number",
@@ -104,7 +104,7 @@
         {
           "name": "[1]",
           "type": "object",
-          "children": [
+          "value": [
             {
               "name": "id",
               "type": "number",
