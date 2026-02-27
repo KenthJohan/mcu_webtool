@@ -5,7 +5,9 @@ const TREE_IMAGES = {
   tee: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGxpbmUgeDE9IjgiIHkxPSIwIiB4Mj0iOCIgeTI9IjI0IiBzdHJva2U9IiM5OTkiIHN0cm9rZS13aWR0aD0iMiIvPjxsaW5lIHgxPSI4IiB5MT0iMTIiIHgyPSIxNiIgeTI9IjEyIiBzdHJva2U9IiM5OTkiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
   corner: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGxpbmUgeDE9IjgiIHkxPSIwIiB4Mj0iOCIgeTI9IjEyIiBzdHJva2U9IiM5OTkiIHN0cm9rZS13aWR0aD0iMiIvPjxsaW5lIHgxPSI4IiB5MT0iMTIiIHgyPSIxNiIgeTI9IjEyIiBzdHJva2U9IiM5OTkiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
   line: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGxpbmUgeDE9IjgiIHkxPSIwIiB4Mj0iOCIgeTI9IjI0IiBzdHJva2U9IiM5OTkiIHN0cm9rZS13aWR0aD0iMiIvPjwvc3ZnPg==',
-  blank: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PC9zdmc+'
+  blank: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PC9zdmc+',
+  expanded: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMSIgeT0iMSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjE0IiBmaWxsPSIjZmZmIiBzdHJva2U9IiM5OTkiLz48bGluZSB4MT0iNCIgeTE9IjgiIHgyPSIxMiIgeTI9IjgiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48L3N2Zz4=',
+  collapsed: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3QgeD0iMSIgeT0iMSIgd2lkdGg9IjE0IiBoZWlnaHQ9IjE0IiBmaWxsPSIjZmZmIiBzdHJva2U9IiM5OTkiLz48bGluZSB4MT0iNCIgeTE9IjgiIHgyPSIxMiIgeTI9IjgiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48bGluZSB4MT0iOCIgeTE9IjQiIHgyPSI4IiB5Mj0iMTIiIHN0cm9rZT0iIzMzMyIgc3Ryb2tlLXdpZHRoPSIxLjUiLz48L3N2Zz4='
 };
 
 /**
@@ -48,6 +50,9 @@ function objectToTree(node, prefixImages = [], isLast = true) {
     line.style.display = 'flex';
     line.style.alignItems = 'flex-start';
     
+    const value = node.value;
+    const hasChildren = (Array.isArray(value) && value.length > 0) || (typeof value === 'object' && value !== null);
+    
     // Add prefix images
     prefixImages.forEach(imgType => {
       const img = document.createElement('img');
@@ -65,6 +70,27 @@ function objectToTree(node, prefixImages = [], isLast = true) {
     connectorImg.style.height = '24px';
     connectorImg.style.flexShrink = '0';
     line.appendChild(connectorImg);
+
+    let childrenContainer = null;
+    if (hasChildren) {
+      const toggleButton = document.createElement('img');
+      toggleButton.src = TREE_IMAGES.expanded;
+      toggleButton.style.width = '16px';
+      toggleButton.style.height = '16px';
+      toggleButton.style.flexShrink = '0';
+      toggleButton.style.cursor = 'pointer';
+      toggleButton.style.marginTop = '4px';
+      line.appendChild(toggleButton);
+
+      childrenContainer = document.createElement('div');
+      childrenContainer.style.display = '';
+
+      toggleButton.addEventListener('click', () => {
+        const isExpanded = childrenContainer.style.display !== 'none';
+        childrenContainer.style.display = isExpanded ? 'none' : '';
+        toggleButton.src = isExpanded ? TREE_IMAGES.collapsed : TREE_IMAGES.expanded;
+      });
+    }
     
     
     // Add type icon if available
@@ -77,7 +103,7 @@ function objectToTree(node, prefixImages = [], isLast = true) {
       typeIcon.style.flexShrink = '0';
       line.appendChild(typeIcon);
     }
-    
+
     // Add label with name
     const label = document.createElement('span');
     label.textContent = node.name;
@@ -85,10 +111,16 @@ function objectToTree(node, prefixImages = [], isLast = true) {
     label.style.marginRight = '8px';
     line.appendChild(label);
     
-    container.appendChild(line);
+    if (typeof value !== 'object' || value === null) {
+      // Value is a primitive - add it to the same line
+      const valueText = document.createElement('span');
+      valueText.textContent = String(value);
+      valueText.style.lineHeight = '24px';
+      valueText.style.color = '#666';
+      line.appendChild(valueText);
+    }
     
-    // Handle the value
-    const value = node.value;
+    container.appendChild(line);
     
     if (Array.isArray(value)) {
       // Value is an array of nodes
@@ -97,44 +129,26 @@ function objectToTree(node, prefixImages = [], isLast = true) {
         value.forEach((childNode, index) => {
           const isLastChild = index === value.length - 1;
           const childTree = objectToTree(childNode, newPrefix, isLastChild);
-          container.appendChild(childTree);
+          if (childrenContainer) {
+            childrenContainer.appendChild(childTree);
+          } else {
+            container.appendChild(childTree);
+          }
         });
       }
     } else if (typeof value === 'object' && value !== null) {
       // Value is an object
       const newPrefix = [...prefixImages, isLast ? 'blank' : 'line'];
       const childTree = objectToTree(value, newPrefix, true);
-      container.appendChild(childTree);
-    } else {
-      // Value is a primitive
-      const valueLine = document.createElement('div');
-      valueLine.style.display = 'flex';
-      valueLine.style.alignItems = 'flex-start';
-      
-      // Add prefix images
-      prefixImages.forEach(imgType => {
-        const img = document.createElement('img');
-        img.src = TREE_IMAGES[imgType];
-        img.style.width = '16px';
-        img.style.height = '24px';
-        img.style.flexShrink = '0';
-        valueLine.appendChild(img);
-      });
-      
-      // Add extension image
-      const extImg = document.createElement('img');
-      extImg.src = isLast ? TREE_IMAGES.blank : TREE_IMAGES.line;
-      extImg.style.width = '16px';
-      extImg.style.height = '24px';
-      extImg.style.flexShrink = '0';
-      valueLine.appendChild(extImg);
-      
-      const valueText = document.createElement('span');
-      valueText.textContent = String(value);
-      valueText.style.lineHeight = '24px';
-      valueLine.appendChild(valueText);
-      
-      container.appendChild(valueLine);
+      if (childrenContainer) {
+        childrenContainer.appendChild(childTree);
+      } else {
+        container.appendChild(childTree);
+      }
+    }
+
+    if (childrenContainer) {
+      container.appendChild(childrenContainer);
     }
     
     return container;
@@ -192,6 +206,28 @@ function objectToTree(node, prefixImages = [], isLast = true) {
     // Add key
     const keySpan = document.createElement('span');
     const value = node[key];
+    const hasChildren = typeof value === 'object' && value !== null;
+    let childrenContainer = null;
+
+    if (hasChildren) {
+      const toggleButton = document.createElement('img');
+      toggleButton.src = TREE_IMAGES.expanded;
+      toggleButton.style.width = '16px';
+      toggleButton.style.height = '16px';
+      toggleButton.style.flexShrink = '0';
+      toggleButton.style.cursor = 'pointer';
+      toggleButton.style.marginTop = '4px';
+      line.appendChild(toggleButton);
+
+      childrenContainer = document.createElement('div');
+      childrenContainer.style.display = '';
+
+      toggleButton.addEventListener('click', () => {
+        const isExpanded = childrenContainer.style.display !== 'none';
+        childrenContainer.style.display = isExpanded ? 'none' : '';
+        toggleButton.src = isExpanded ? TREE_IMAGES.collapsed : TREE_IMAGES.expanded;
+      });
+    }
     
     if (typeof value === 'object' && value !== null) {
       keySpan.textContent = key;
@@ -201,7 +237,12 @@ function objectToTree(node, prefixImages = [], isLast = true) {
       
       const newPrefix = [...prefixImages, isLastItem ? 'blank' : 'line'];
       const childTree = objectToTree(value, newPrefix, isLastItem);
-      container.appendChild(childTree);
+      if (childrenContainer) {
+        childrenContainer.appendChild(childTree);
+        container.appendChild(childrenContainer);
+      } else {
+        container.appendChild(childTree);
+      }
     } else {
       keySpan.textContent = key + ': ' + String(value);
       keySpan.style.lineHeight = '24px';
