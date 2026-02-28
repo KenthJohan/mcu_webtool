@@ -10,6 +10,21 @@ function aux_create_shadow_column(rows, c) {
     return fragment;
 }
 
+function aux_remove_cssclass(grid, cssclass) {
+    for (let i = 0; i < grid.children.length; i++) {
+        grid.children[i].classList.remove(cssclass);
+    }
+}
+
+function aux_add_cssclass_column(grid, cssclass, c, rows) {
+    for (let r = 0; r < rows; r++) {
+        let index = r + c * rows; // Calculate the index for column-major order
+        if (index < grid.children.length) {
+            grid.children[index].classList.add(cssclass);
+        }
+    }
+}
+
 function grid_add_column(grid, c, rows) {
     console.assert(grid instanceof HTMLElement, 'Grid should be a valid HTMLElement.');
     let fragment = aux_create_shadow_column(rows, c);
@@ -38,6 +53,20 @@ function grid_add_row(grid, r, rows, cols, cssclass = null) {
 }
 
 
+function grid_swap_columns(grid, c1, c2, rows) {
+    console.assert(grid instanceof HTMLElement, 'Grid should be a valid HTMLElement.');
+    for (let r = 0; r < rows; r++) {
+        let index1 = r + c1 * rows;
+        let index2 = r + c2 * rows;
+        if (index1 < grid.children.length && index2 < grid.children.length) {
+            let temp = grid.children[index1].textContent;
+            grid.children[index1].textContent = grid.children[index2].textContent;
+            grid.children[index2].textContent = temp;
+        }
+    }
+}
+
+
 class GridExplorer {
     constructor(el) {
         this.cols = parseInt(el.getAttribute('cols')); // Get from attribute or default
@@ -46,15 +75,58 @@ class GridExplorer {
         this.grid.style.gridAutoFlow = 'column'; // Set column-major order
         this._set_cols(this.cols);
         this._set_rows(this.rows);
-        this._display(true); // Ensure grid is visible
-        this.logChildren();
+        this.display(true); // Ensure grid is visible
+
+        // Drag state for column swapping
+        this._dragCol = null;
+        this._setupColumnDrag();
     }
 
-    logChildren() {
-        console.log('Grid children:', this.grid.children);
+    _setupColumnDrag() {
+        // Add event listeners to grid for column drag
+        this.grid.addEventListener('mousedown', (e) => {
+            const cell = e.target.closest('div');
+            if (!cell || !cell.hasAttribute('c')) return;
+            if (cell.classList.contains('header')) {
+                // user-select: none;
+                this.grid.style.userSelect = 'none';
+                this._dragCol = parseInt(cell.getAttribute('c'));
+                this.grid.classList.add('dragging-col');
+                aux_add_cssclass_column(this.grid, 'drag-src', this._dragCol, this.rows);
+            }
+        });
+        document.addEventListener('mouseup', (e) => {
+            this.grid.style.userSelect = 'auto';
+            aux_remove_cssclass(this.grid, 'drag-over');
+            aux_remove_cssclass(this.grid, 'drag-src');
+            if (this._dragCol === null) return;
+            const cell = e.target.closest('div');
+            if (!cell || !cell.hasAttribute('c')) {
+                this._dragCol = null;
+                this.grid.classList.remove('dragging-col');
+                return;
+            }
+            const targetCol = parseInt(cell.getAttribute('c'));
+            if (targetCol !== this._dragCol) {
+                this.swap_columns(this._dragCol, targetCol);
+            }
+            this._dragCol = null;
+            this.grid.classList.remove('dragging-col');
+        });
+        // Optional: add visual feedback for dragover
+        this.grid.addEventListener('mouseover', (e) => {
+            if (this._dragCol === null) return;
+            const cell = e.target.closest('div');
+            if (!cell || !cell.hasAttribute('c')) return;
+            // Optionally highlight column
+            console.log('Hovering over column:', cell.getAttribute('c'));
+            let c = cell.getAttribute('c');
+            aux_remove_cssclass(this.grid, 'drag-over');
+            aux_add_cssclass_column(this.grid, 'drag-over', c, this.rows);
+        });
     }
 
-    _display(enabled) {
+    display(enabled) {
         this.grid.style.display = enabled ? 'grid' : 'none';
     }
 
@@ -91,12 +163,12 @@ class GridExplorer {
             console.error('Invalid row index:', r);
             return;
         }
-        this._display(false); // Pause rendering
+        this.display(false); // Pause rendering
         try {
             grid_add_row(this.grid, r, this.rows, this.cols, cssclass);
         } finally {
             this._set_rows(this.rows + 1);
-            this._display(true); // Resume rendering
+            this.display(true); // Resume rendering
         }
         return r; // Return the index of the added row
     }
@@ -112,6 +184,15 @@ class GridExplorer {
         } else {
             console.error('Cell index out of bounds:', r, c);
         }
+    }
+
+    swap_columns(c1, c2) {
+        if (c1 >= this.cols || c2 >= this.cols) {
+            console.error('Invalid column indices:', c1, c2);
+            return;
+        }
+        // Swap the content of the columns (c1 and c2) in the grid
+        grid_swap_columns(this.grid, c1, c2, this.rows);
     }
 
     rm_column(c) {

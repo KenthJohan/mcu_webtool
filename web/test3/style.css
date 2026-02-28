@@ -1,2 +1,20 @@
 .grid {
+	user-select: none;
+}
+
+.dragging-col {
+	cursor: col-resize;
+}
+
+.header {
+    font-weight: bold;
+    background-color: lightgray;
+}
+
+.drag-over {
+    background-color: lightblue;
+}
+
+.drag-src {
+    background-color: lightcoral;
 }
