@@ -17,15 +17,16 @@
     <script>
         const grid = document.getElementById('test');
         const explorer = new GridExplorer(grid);
-        let r = explorer.add_row(0, 'header');
+        explorer.add_row(0, 'colswap');
+        let r = explorer.add_row(1, 'header');
         explorer.set_cell(r, 0, 'name');
         explorer.set_cell(r, 1, 'value');
         explorer.set_cell(r, 2, 'address');
-        explorer.add_row(1, 'x');
-        explorer.add_row(2, 'y');
-        explorer.add_row(-1, 'o');
-        explorer.add_row(-1, 'j');
-        explorer.add_row(-1, 'k');
+        explorer.add_row(-1, 'x');
+        explorer.add_row(-1, 'x');
+        explorer.add_row(-1, 'x');
+        explorer.add_row(-1, 'x');
+        explorer.add_row(-1, 'x');
         //r = explorer.add_row(0);
     </script>
 </body>

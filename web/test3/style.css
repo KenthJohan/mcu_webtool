@@ -1,5 +1,7 @@
-.grid {
+.colswap {
+    cursor: col-resize;
 	user-select: none;
+    background-color: rgb(104, 233, 50);
 }
 
 .dragging-col {

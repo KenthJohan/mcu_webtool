@@ -82,14 +82,18 @@ class GridExplorer {
         this._setupColumnDrag();
     }
 
+    _drag_column(c) {
+        this._dragCol = c;
+        this.grid.classList.add('dragging-col');
+        aux_add_cssclass_column(this.grid, 'drag-src', c, this.rows);
+    }
+
     _setupColumnDrag() {
         // Add event listeners to grid for column drag
         this.grid.addEventListener('mousedown', (e) => {
             const cell = e.target.closest('div');
             if (!cell || !cell.hasAttribute('c')) return;
-            if (cell.classList.contains('header')) {
-                // user-select: none;
-                this.grid.style.userSelect = 'none';
+            if (cell.classList.contains('colswap')) {
                 this._dragCol = parseInt(cell.getAttribute('c'));
                 this.grid.classList.add('dragging-col');
                 aux_add_cssclass_column(this.grid, 'drag-src', this._dragCol, this.rows);
@@ -118,11 +122,11 @@ class GridExplorer {
             if (this._dragCol === null) return;
             const cell = e.target.closest('div');
             if (!cell || !cell.hasAttribute('c')) return;
-            // Optionally highlight column
-            console.log('Hovering over column:', cell.getAttribute('c'));
-            let c = cell.getAttribute('c');
-            aux_remove_cssclass(this.grid, 'drag-over');
-            aux_add_cssclass_column(this.grid, 'drag-over', c, this.rows);
+            const targetCol = parseInt(cell.getAttribute('c'));
+            if (targetCol !== this._dragCol) {
+                aux_remove_cssclass(this.grid, 'drag-over');
+                aux_add_cssclass_column(this.grid, 'drag-over', targetCol, this.rows);
+            }
         });
     }
 
@@ -146,8 +150,11 @@ class GridExplorer {
 
     add_column(c) {
         if (c == -1) {
-            c = this.cols - 1; // Add at the end
-        } else if (c > this.cols) {
+            c = this.cols; // Add at the end
+        } else if (c < -1) {
+            console.error('Invalid column index:', c);
+            return;
+        }  else if (c > this.cols) {
             console.error('Invalid column index:', c);
             return;
         }
@@ -158,11 +165,15 @@ class GridExplorer {
 
     add_row(r, cssclass = null) {
         if (r == -1) {
-            r = this.rows - 1; // Add at the end
+            r = this.rows; // Add at the end
+        } else if (r < -1) {
+            console.error('Invalid row index:', r);
+            return;
         } else if (r > this.rows) {
             console.error('Invalid row index:', r);
             return;
         }
+        console.log('Adding row at index:', r, 'with cssclass:', cssclass);
         this.display(false); // Pause rendering
         try {
             grid_add_row(this.grid, r, this.rows, this.cols, cssclass);
