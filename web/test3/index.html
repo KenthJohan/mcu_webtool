@@ -10,16 +10,21 @@
 
 <body>
 
-    <div class="grid" id="test" cols="1" rows="1">
-        <div>Row 1, Col 1</div>
+    <div class="grid" id="test" cols="5" rows="0">
     </div>
 
     <script src="script.js"></script>
     <script>
         const grid = document.getElementById('test');
         const explorer = new GridExplorer(grid);
-        explorer.add_column(-1);
-        explorer.add_row(2);
+        let r = explorer.add_row(0);
+        explorer.set_cell(r, 0, 'A');
+        explorer.set_cell(r, 1, 'B');
+        explorer.set_cell(r, 2, 'C');
+        explorer.add_row(1, 'x');
+        explorer.add_row(2, 'y');
+        explorer.add_row(0, 'o');
+        //r = explorer.add_row(0);
     </script>
 </body>
 
