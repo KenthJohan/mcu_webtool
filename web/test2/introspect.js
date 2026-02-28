@@ -108,20 +108,20 @@ function createColumnResizer(line) {
  */
 function objectToTree(node, prefixImages = [], isLast = true) {
   const container = document.createElement('div');
-  
+
   // Handle primitive types
   if (node === null) {
     const textNode = document.createTextNode('null');
     container.appendChild(textNode);
     return container;
   }
-  
+
   if (typeof node !== 'object') {
     const textNode = document.createTextNode(String(node));
     container.appendChild(textNode);
     return container;
   }
-  
+
   // Check if this is a node with name, type, value structure
   if ('name' in node && 'type' in node && 'value' in node) {
     const line = document.createElement('div');
@@ -134,10 +134,10 @@ function objectToTree(node, prefixImages = [], isLast = true) {
 
     const columnResizer = createColumnResizer(line);
     line.appendChild(columnResizer);
-    
+
     const value = node.value;
     const hasChildren = (Array.isArray(value) && value.length > 0) || (typeof value === 'object' && value !== null);
-    
+
     // Add prefix images
     prefixImages.forEach(imgType => {
       const img = document.createElement('img');
@@ -147,14 +147,14 @@ function objectToTree(node, prefixImages = [], isLast = true) {
       img.style.flexShrink = '0';
       leftColumn.appendChild(img);
     });
-    
+
     // Add connector image with optional toggle button overlay
     const connectorContainer = document.createElement('div');
     connectorContainer.style.position = 'relative';
     connectorContainer.style.width = `${TREE_ICON_WIDTH}px`;
     connectorContainer.style.height = `${TREE_ICON_HEIGHT}px`;
     connectorContainer.style.flexShrink = '0';
-    
+
     const connectorImg = document.createElement('img');
     connectorImg.src = isLast ? TREE_IMAGES.corner : TREE_IMAGES.tee;
     connectorImg.style.width = `${TREE_ICON_WIDTH}px`;
@@ -184,8 +184,8 @@ function objectToTree(node, prefixImages = [], isLast = true) {
         toggleButton.src = isExpanded ? TREE_IMAGES.collapsed : TREE_IMAGES.expanded;
       });
     }
-    
-    
+
+
     // Add type icon if available
     if (node.type in TYPE_ICONS) {
       const typeIcon = document.createElement('img');
@@ -203,9 +203,9 @@ function objectToTree(node, prefixImages = [], isLast = true) {
     label.textContent = node.name;
     label.style.lineHeight = `${TREE_ROW_HEIGHT}px`;
     label.style.marginRight = '8px';
-    label.style.marginLeft= '8px';
+    label.style.marginLeft = '8px';
     leftColumn.appendChild(label);
-    
+
     if (typeof value !== 'object' || value === null) {
       // Value is a primitive - add it to right column
       const valueText = document.createElement('span');
@@ -217,9 +217,9 @@ function objectToTree(node, prefixImages = [], isLast = true) {
       valueText.style.paddingLeft = '8px';
       line.appendChild(valueText);
     }
-    
+
     container.appendChild(line);
-    
+
     if (Array.isArray(value)) {
       // Value is an array of nodes
       if (value.length > 0) {
@@ -248,10 +248,10 @@ function objectToTree(node, prefixImages = [], isLast = true) {
     if (childrenContainer) {
       container.appendChild(childrenContainer);
     }
-    
+
     return container;
   }
-  
+
   // Handle arrays (fallback for arrays without name/type structure)
   if (Array.isArray(node)) {
     if (node.length === 0) {
@@ -259,16 +259,16 @@ function objectToTree(node, prefixImages = [], isLast = true) {
       container.appendChild(textNode);
       return container;
     }
-    
+
     node.forEach((item, index) => {
       const isLastItem = index === node.length - 1;
       const childTree = objectToTree(item, prefixImages, isLastItem);
       container.appendChild(childTree);
     });
-    
+
     return container;
   }
-  
+
   // Handle plain objects (fallback)
   const keys = Object.keys(node);
   if (keys.length === 0) {
@@ -276,7 +276,7 @@ function objectToTree(node, prefixImages = [], isLast = true) {
     container.appendChild(textNode);
     return container;
   }
-  
+
   keys.forEach((key, index) => {
     const isLastItem = index === keys.length - 1;
     const line = document.createElement('div');
@@ -289,7 +289,7 @@ function objectToTree(node, prefixImages = [], isLast = true) {
 
     const columnResizer = createColumnResizer(line);
     line.appendChild(columnResizer);
-    
+
     // Add prefix images
     prefixImages.forEach(imgType => {
       const img = document.createElement('img');
@@ -299,14 +299,14 @@ function objectToTree(node, prefixImages = [], isLast = true) {
       img.style.flexShrink = '0';
       leftColumn.appendChild(img);
     });
-    
+
     // Add connector image with optional toggle button overlay
     const connectorContainer = document.createElement('div');
     connectorContainer.style.position = 'relative';
     connectorContainer.style.width = `${TREE_ICON_WIDTH}px`;
     connectorContainer.style.height = `${TREE_ICON_HEIGHT}px`;
     connectorContainer.style.flexShrink = '0';
-    
+
     const connectorImg = document.createElement('img');
     connectorImg.src = isLastItem ? TREE_IMAGES.corner : TREE_IMAGES.tee;
     connectorImg.style.width = `${TREE_ICON_WIDTH}px`;
@@ -315,7 +315,7 @@ function objectToTree(node, prefixImages = [], isLast = true) {
     connectorContainer.appendChild(connectorImg);
     leftColumn.appendChild(connectorContainer);
   });
-  
+
   return container;
 }
 
@@ -327,10 +327,11 @@ function objectToTree(node, prefixImages = [], isLast = true) {
 function renderObjectTree(obj, container) {
   const tree = objectToTree(obj);
   tree.dataset.treeRoot = '1';
-  
-  tree.style.fontFamily = 'MS Sans Serif';
-  tree.style.fontSize = '14px';
-  
+
+  tree.style.webkitFontSmoothing = 'none';
+  tree.style.fontFamily = 'monospace, monospace';
+  tree.style.fontSize = '12px';
+
   container.innerHTML = '';
   container.appendChild(tree);
 }
