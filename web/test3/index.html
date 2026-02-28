@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Tree Explorer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="grid" id="test" cols="1" rows="1">
+        <div>Row 1, Col 1</div>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        const grid = document.getElementById('test');
+        const explorer = new GridExplorer(grid);
+        explorer.add_column(-1);
+        explorer.add_row(2);
+    </script>
+</body>
+
+</html>
