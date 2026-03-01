@@ -17,6 +17,151 @@ except ImportError:
     ELFTOOLS_AVAILABLE = False
 
 
+def get_int_attr(die, attr_name):
+    """Safely read an integer DWARF attribute value from a DIE."""
+    attr = die.attributes.get(attr_name)
+    if not attr:
+        return None
+    value = attr.value
+    return value if isinstance(value, int) else None
+
+
+def resolve_type_name(die, dwarfinfo, type_cache):
+    """Recursively resolve a readable type name for a DIE."""
+    if die is None:
+        return 'unknown'
+
+    if die.offset in type_cache:
+        return type_cache[die.offset]
+
+    if die.tag == 'DW_TAG_base_type':
+        name = die.attributes.get('DW_AT_name')
+        resolved = name.value.decode('utf-8') if name else 'unknown'
+
+    elif die.tag == 'DW_TAG_pointer_type':
+        type_attr = die.attributes.get('DW_AT_type')
+        if type_attr:
+            ref_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
+            base_type = resolve_type_name(ref_die, dwarfinfo, type_cache)
+            resolved = f"{base_type} *"
+        else:
+            resolved = "void *"
+
+    elif die.tag == 'DW_TAG_reference_type':
+        type_attr = die.attributes.get('DW_AT_type')
+        if type_attr:
+            ref_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
+            base_type = resolve_type_name(ref_die, dwarfinfo, type_cache)
+            resolved = f"{base_type} &"
+        else:
+            resolved = "unknown &"
+
+    elif die.tag == 'DW_TAG_rvalue_reference_type':
+        type_attr = die.attributes.get('DW_AT_type')
+        if type_attr:
+            ref_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
+            base_type = resolve_type_name(ref_die, dwarfinfo, type_cache)
+            resolved = f"{base_type} &&"
+        else:
+            resolved = "unknown &&"
+
+    elif die.tag == 'DW_TAG_array_type':
+        type_attr = die.attributes.get('DW_AT_type')
+        if type_attr:
+            ref_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
+            base_type = resolve_type_name(ref_die, dwarfinfo, type_cache)
+            dims = []
+            if die.has_children:
+                for child in die.iter_children():
+                    if child.tag != 'DW_TAG_subrange_type':
+                        continue
+
+                    count = get_int_attr(child, 'DW_AT_count')
+                    if count is not None:
+                        dims.append(str(count))
+                        continue
+
+                    upper = get_int_attr(child, 'DW_AT_upper_bound')
+                    if upper is None:
+                        dims.append('')
+                        continue
+
+                    lower = get_int_attr(child, 'DW_AT_lower_bound')
+                    if lower is None:
+                        lower = 0
+                    dims.append(str((upper - lower) + 1))
+
+            if not dims:
+                resolved = f"{base_type}[]"
+            else:
+                resolved = f"{base_type}{''.join(f'[{d}]' for d in dims)}"
+        else:
+            resolved = "unknown[]"
+
+    elif die.tag == 'DW_TAG_structure_type':
+        name = die.attributes.get('DW_AT_name')
+        if name:
+            resolved = f"struct {name.value.decode('utf-8')}"
+        else:
+            resolved = f"struct <anonymous@0x{die.offset:x}>"
+
+    elif die.tag == 'DW_TAG_union_type':
+        name = die.attributes.get('DW_AT_name')
+        if name:
+            resolved = f"union {name.value.decode('utf-8')}"
+        else:
+            resolved = f"union <anonymous@0x{die.offset:x}>"
+
+    elif die.tag == 'DW_TAG_enumeration_type':
+        name = die.attributes.get('DW_AT_name')
+        if name:
+            resolved = f"enum {name.value.decode('utf-8')}"
+        else:
+            resolved = f"enum <anonymous@0x{die.offset:x}>"
+
+    elif die.tag == 'DW_TAG_typedef':
+        name = die.attributes.get('DW_AT_name')
+        if name:
+            resolved = name.value.decode('utf-8')
+        else:
+            type_attr = die.attributes.get('DW_AT_type')
+            if type_attr:
+                ref_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
+                resolved = resolve_type_name(ref_die, dwarfinfo, type_cache)
+            else:
+                resolved = "typedef"
+
+    elif die.tag == 'DW_TAG_const_type':
+        type_attr = die.attributes.get('DW_AT_type')
+        if type_attr:
+            ref_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
+            resolved = f"const {resolve_type_name(ref_die, dwarfinfo, type_cache)}"
+        else:
+            resolved = "const unknown"
+
+    elif die.tag == 'DW_TAG_volatile_type':
+        type_attr = die.attributes.get('DW_AT_type')
+        if type_attr:
+            ref_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
+            resolved = f"volatile {resolve_type_name(ref_die, dwarfinfo, type_cache)}"
+        else:
+            resolved = "volatile unknown"
+
+    else:
+        type_attr = die.attributes.get('DW_AT_type')
+        if type_attr:
+            try:
+                ref_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
+                resolved = resolve_type_name(ref_die, dwarfinfo, type_cache)
+            except:
+                resolved = die.tag.replace('DW_TAG_', '')
+        else:
+            resolved = die.tag.replace('DW_TAG_', '')
+
+    type_cache[die.offset] = resolved
+    return resolved
+
+
 def get_variable_types_from_dwarf(binary_path):
     """
     Extract variable type information from DWARF debug information.
@@ -32,85 +177,7 @@ def get_variable_types_from_dwarf(binary_path):
             return var_types
         
         dwarfinfo = elf.get_dwarf_info()
-        type_cache = {}  # Cache for type lookups
-
-        def get_int_attr(die, attr_name):
-            """Safely read an integer DWARF attribute value from a DIE."""
-            attr = die.attributes.get(attr_name)
-            if not attr:
-                return None
-            value = attr.value
-            return value if isinstance(value, int) else None
-        
-        def get_type_name(die, dwarfinfo):
-            """Recursively get the type name for a DIE"""
-            if die.offset in type_cache:
-                return type_cache[die.offset]
-            
-            if die.tag == 'DW_TAG_base_type':
-                name = die.attributes.get('DW_AT_name')
-                return name.value.decode('utf-8') if name else 'unknown'
-            
-            elif die.tag == 'DW_TAG_pointer_type':
-                type_attr = die.attributes.get('DW_AT_type')
-                if type_attr:
-                    ref_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
-                    base_type = get_type_name(ref_die, dwarfinfo)
-                    return f"{base_type} *"
-                return "void *"
-            
-            elif die.tag == 'DW_TAG_array_type':
-                type_attr = die.attributes.get('DW_AT_type')
-                if type_attr:
-                    ref_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
-                    base_type = get_type_name(ref_die, dwarfinfo)
-                    dims = []
-                    if die.has_children:
-                        for child in die.iter_children():
-                            if child.tag != 'DW_TAG_subrange_type':
-                                continue
-
-                            count = get_int_attr(child, 'DW_AT_count')
-                            if count is not None:
-                                dims.append(str(count))
-                                continue
-
-                            upper = get_int_attr(child, 'DW_AT_upper_bound')
-                            if upper is None:
-                                dims.append('')
-                                continue
-
-                            lower = get_int_attr(child, 'DW_AT_lower_bound')
-                            if lower is None:
-                                lower = 0
-                            dims.append(str((upper - lower) + 1))
-
-                    if not dims:
-                        return f"{base_type}[]"
-                    return f"{base_type}{''.join(f'[{d}]' for d in dims)}"
-                return "unknown[]"
-            
-            elif die.tag == 'DW_TAG_structure_type':
-                name = die.attributes.get('DW_AT_name')
-                if name:
-                    return f"struct {name.value.decode('utf-8')}"
-                return "struct <anonymous>"
-            
-            elif die.tag == 'DW_TAG_typedef':
-                name = die.attributes.get('DW_AT_name')
-                if name:
-                    return name.value.decode('utf-8')
-                return "typedef"
-            
-            else:
-                type_attr = die.attributes.get('DW_AT_type')
-                if type_attr:
-                    try:
-                        ref_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
-                        return get_type_name(ref_die, dwarfinfo)
-                    except:
-                        pass
-                return die.tag.replace('DW_TAG_', '')
+        type_cache = {}
         
         for CU in dwarfinfo.iter_CUs():
             for DIE in CU.iter_DIEs():
@@ -124,7 +191,7 @@ def get_variable_types_from_dwarf(binary_path):
                         if type_attr:
                             try:
                                 type_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
-                                var_type = get_type_name(type_die, dwarfinfo)
+                                var_type = resolve_type_name(type_die, dwarfinfo, type_cache)
                                 var_types[name] = var_type
                                 type_cache[DIE.offset] = var_type
                             except:
@@ -220,103 +287,185 @@ def get_symbols_from_elf(binary_path, var_types=None, include_undefined=False):
     return symbols
 
 
-def get_struct_types_from_dwarf(binary_path):
+def get_types_from_dwarf(binary_path):
     """
-    Extract struct type definitions from DWARF debug information.
-    
-    Returns a list of dicts with struct information including members and sizes
+    Extract type definitions from DWARF debug information.
+
+    Returns a list of type definitions.
     """
-    struct_types = []
+    all_types = []
     
     with open(binary_path, 'rb') as f:
         elf = ELFFile(f)
         
         if not elf.has_dwarf_info():
-            return struct_types
+            return all_types
         
         dwarfinfo = elf.get_dwarf_info()
+        type_cache = {}
+
+        tag_to_kind = {
+            'DW_TAG_base_type': 'base',
+            'DW_TAG_typedef': 'typedef',
+            'DW_TAG_pointer_type': 'pointer',
+            'DW_TAG_reference_type': 'reference',
+            'DW_TAG_rvalue_reference_type': 'rvalue_reference',
+            'DW_TAG_array_type': 'array',
+            'DW_TAG_structure_type': 'struct',
+            'DW_TAG_union_type': 'union',
+            'DW_TAG_enumeration_type': 'enum',
+            'DW_TAG_const_type': 'const',
+            'DW_TAG_volatile_type': 'volatile',
+            'DW_TAG_subroutine_type': 'subroutine'
+        }
         
         for CU in dwarfinfo.iter_CUs():
             for DIE in CU.iter_DIEs():
-                # Look for structure type definitions
-                if DIE.tag == 'DW_TAG_structure_type':
-                    struct_name = DIE.attributes.get('DW_AT_name')
-                    struct_size = DIE.attributes.get('DW_AT_byte_size')
-                    
-                    name = struct_name.value.decode('utf-8') if struct_name else '<anonymous>'
-                    size = struct_size.value if struct_size else 0
-                    
-                    # Extract members
-                    members = []
-                    if DIE.has_children:
-                        for child in DIE.iter_children():
-                            if child.tag == 'DW_TAG_member':
-                                member_name = child.attributes.get('DW_AT_name')
-                                member_type = child.attributes.get('DW_AT_type')
-                                member_offset = child.attributes.get('DW_AT_data_member_location')
-                                
-                                if member_name:
-                                    m_name = member_name.value.decode('utf-8')
-                                    m_offset = member_offset.value if member_offset else 0
-                                    
-                                    members.append({
-                                        'name': m_name,
-                                        'offset': m_offset
-                                    })
-                    
-                    struct_types.append({
-                        'name': name,
-                        'size': size,
-                        'members': members,
-                        'member_count': len(members)
-                    })
-    
-    return struct_types
+                if DIE.tag not in tag_to_kind:
+                    continue
+
+                kind = tag_to_kind[DIE.tag]
+                resolved_name = resolve_type_name(DIE, dwarfinfo, type_cache)
+                size = get_int_attr(DIE, 'DW_AT_byte_size')
+
+                type_entry = {
+                    'name': resolved_name,
+                    'kind': kind,
+                    'size': size,
+                    'tag': DIE.tag
+                }
+
+                type_attr = DIE.attributes.get('DW_AT_type')
+                if type_attr:
+                    try:
+                        base_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
+                        type_entry['base_type'] = resolve_type_name(base_die, dwarfinfo, type_cache)
+                    except:
+                        type_entry['base_type'] = None
+
+                members = []
+                if DIE.tag in ('DW_TAG_structure_type', 'DW_TAG_union_type') and DIE.has_children:
+                    for child in DIE.iter_children():
+                        if child.tag != 'DW_TAG_member':
+                            continue
+
+                        member_name = child.attributes.get('DW_AT_name')
+                        m_name = member_name.value.decode('utf-8') if member_name else f"<anonymous@0x{child.offset:x}>"
+
+                        m_offset = get_int_attr(child, 'DW_AT_data_member_location')
+                        if m_offset is None:
+                            m_offset = 0
+
+                        member_type = None
+                        member_type_attr = child.attributes.get('DW_AT_type')
+                        if member_type_attr:
+                            try:
+                                member_type_die = dwarfinfo.get_DIE_from_refaddr(member_type_attr.value)
+                                member_type = resolve_type_name(member_type_die, dwarfinfo, type_cache)
+                            except:
+                                member_type = None
+
+                        members.append({
+                            'name': m_name,
+                            'offset': m_offset,
+                            'type': member_type
+                        })
+
+                if members:
+                    type_entry['members'] = members
+                    type_entry['member_count'] = len(members)
+
+                if DIE.tag == 'DW_TAG_enumeration_type' and DIE.has_children:
+                    enumerators = []
+                    for child in DIE.iter_children():
+                        if child.tag != 'DW_TAG_enumerator':
+                            continue
+                        enum_name = child.attributes.get('DW_AT_name')
+                        enum_value = get_int_attr(child, 'DW_AT_const_value')
+                        if enum_name:
+                            enumerators.append({
+                                'name': enum_name.value.decode('utf-8'),
+                                'value': enum_value
+                            })
+                    if enumerators:
+                        type_entry['enumerators'] = enumerators
+                        type_entry['enumerator_count'] = len(enumerators)
+
+                all_types.append(type_entry)
+
+    return all_types
 
 
-def export_to_json(symbols=None, struct_types=None, output_file=None):
-    """Export symbols and struct types to JSON format."""
+def export_to_json(symbols=None, all_types=None, output_file=None):
+    """Export symbols and type information to JSON format."""
     output = {}
 
-    struct_name_to_index = {}
-    if struct_types:
-        for idx, struct in enumerate(struct_types):
-            struct_name = struct.get('name')
-            if struct_name:
-                struct_name_to_index[struct_name] = idx
+    type_name_to_index = {}
+    if all_types:
+        for idx, type_entry in enumerate(all_types):
+            type_name = type_entry.get('name')
+            if type_name and type_name not in type_name_to_index:
+                type_name_to_index[type_name] = idx
+
+    def resolve_type_index(type_name):
+        if not isinstance(type_name, str):
+            return None
+
+        exact_match = type_name_to_index.get(type_name)
+        if exact_match is not None:
+            return exact_match
+
+        cleaned_type = type_name.split('[', 1)[0].strip()
+        type_index = type_name_to_index.get(cleaned_type)
+        return type_index
 
     if symbols:
         json_symbols = []
         for sym in symbols:
             json_sym = dict(sym)
-            struct_type_index = None
             dwarf_type = json_sym.get('dwarf_type')
-            if isinstance(dwarf_type, str) and dwarf_type.startswith('struct '):
-                struct_name = dwarf_type[len('struct '):]
-                struct_name = struct_name.split('[', 1)[0]
-                struct_type_index = struct_name_to_index.get(struct_name)
-            json_sym['struct_type'] = struct_type_index
+            json_sym['type_ref'] = resolve_type_index(dwarf_type)
             json_symbols.append(json_sym)
 
         output['symbols'] = json_symbols
         output['symbol_count'] = len(json_symbols)
     
-    if struct_types:
-        output['struct_types'] = struct_types
-        output['struct_count'] = len(struct_types)
+    if all_types:
+        json_types = []
+        for idx, type_entry in enumerate(all_types):
+            json_type_entry = dict(type_entry)
+            json_type_entry['id'] = idx
+
+            base_type = json_type_entry.get('base_type')
+            if base_type is not None:
+                json_type_entry['base_type_ref'] = resolve_type_index(base_type)
+
+            members = json_type_entry.get('members')
+            if isinstance(members, list):
+                json_members = []
+                for member in members:
+                    json_member = dict(member)
+                    json_member['type_ref'] = resolve_type_index(json_member.get('type'))
+                    json_members.append(json_member)
+                json_type_entry['members'] = json_members
+
+            json_types.append(json_type_entry)
+
+        output['types'] = json_types
+        output['type_count'] = len(json_types)
     
     if output_file:
         with open(output_file, 'w') as f:
             json.dump(output, f, indent=2)
-        print(f"Exported {len(symbols or [])} symbols and {len(struct_types or [])} struct types to {output_file}")
+        print(f"Exported {len(symbols or [])} symbols and {len(all_types or [])} total types to {output_file}")
     else:
         print(json.dumps(output, indent=2))
     
     return output
 
 
-def export_to_csv(symbols=None, struct_types=None, output_file=None):
-    """Export symbols and struct types to CSV format."""
+def export_to_csv(symbols=None, all_types=None, output_file=None):
+    """Export symbols and type information to CSV format."""
     if not output_file:
         output_file = 'symbols.csv'
     
@@ -329,23 +478,22 @@ def export_to_csv(symbols=None, struct_types=None, output_file=None):
                 f.write(f"{sym['name']},0x{sym['address']:x},{sym['type']},{dwarf_type},{sym['binding']},{sym['size']},{sym['section']}\n")
             f.write("\n")
         
-        if struct_types:
-            f.write("=== STRUCT TYPES ===\n")
-            f.write("Struct Name,Size,Member Count\n")
-            for st in struct_types:
-                f.write(f"{st['name']},{st['size']},{st['member_count']}\n")
-                if st['members']:
-                    f.write(f"  Members:\n")
-                    for member in st['members']:
-                        f.write(f"    {member['name']} (offset: {member['offset']})\n")
+        if all_types:
+            f.write("\n=== ALL TYPES ===\n")
+            f.write("Name,Kind,Size,Base Type,Member Count\n")
+            for t in all_types:
+                f.write(
+                    f"{t.get('name','-')},{t.get('kind','-')},{t.get('size','-')},"
+                    f"{t.get('base_type','-')},{t.get('member_count',0)}\n"
+                )
     
     total_syms = len(symbols or [])
-    total_structs = len(struct_types or [])
-    print(f"Exported {total_syms} symbols and {total_structs} struct types to {output_file}")
+    total_types = len(all_types or [])
+    print(f"Exported {total_syms} symbols and {total_types} total types to {output_file}")
 
 
-def export_to_text(symbols=None, struct_types=None, output_file=None):
-    """Export symbols and struct types to a formatted text file."""
+def export_to_text(symbols=None, all_types=None, output_file=None):
+    """Export symbols and type information to a formatted text file."""
     lines = []
     
     if symbols:
@@ -358,20 +506,20 @@ def export_to_text(symbols=None, struct_types=None, output_file=None):
             dwarf_type = sym.get('dwarf_type') or '-'
             lines.append(f"{sym['name']:<40} 0x{sym['address']:08x}   {sym['type']:<10} {dwarf_type:<30}")
     
-    if struct_types:
+    if all_types:
         if symbols:
             lines.append("\n")
-        lines.append("Struct Type Definitions")
+        lines.append("All Type Definitions")
         lines.append("=" * 120)
-        
-        for struct in struct_types:
-            lines.append(f"\nstruct {struct['name']} (size: {struct['size']} bytes)")
-            lines.append("-" * 80)
-            if struct['members']:
-                for member in struct['members']:
-                    lines.append(f"  +{member['offset']:04d}  {member['name']}")
-            else:
-                lines.append("  (no members)")
+        lines.append(f"{'Name':<40} {'Kind':<14} {'Size':<8} {'Base Type':<40}")
+        lines.append("-" * 120)
+        for t in all_types:
+            lines.append(
+                f"{str(t.get('name') or '-')[:40]:<40} "
+                f"{str(t.get('kind') or '-')[:14]:<14} "
+                f"{str(t.get('size') if t.get('size') is not None else '-'):<8} "
+                f"{str(t.get('base_type') or '-')[:40]:<40}"
+            )
     
     output = "\n".join(lines)
     
@@ -379,8 +527,8 @@ def export_to_text(symbols=None, struct_types=None, output_file=None):
         with open(output_file, 'w') as f:
             f.write(output)
         total_syms = len(symbols or [])
-        total_structs = len(struct_types or [])
-        print(f"Exported {total_syms} symbols and {total_structs} struct types to {output_file}")
+        total_types = len(all_types or [])
+        print(f"Exported {total_syms} symbols and {total_types} total types to {output_file}")
     else:
         print(output)
     
@@ -434,7 +582,7 @@ def main():
     
     # Extract data based on export_type
     symbols = None
-    struct_types = None
+    all_types = None
     
     print(f"Reading from: {binary_path}", file=sys.stderr)
     
@@ -448,17 +596,17 @@ def main():
         print(f"Found {len(symbols)} symbols", file=sys.stderr)
     
     if export_type in ('types', 'all'):
-        print(f"Extracting struct types from DWARF...", file=sys.stderr)
-        struct_types = get_struct_types_from_dwarf(binary_path)
-        print(f"Found {len(struct_types)} struct types", file=sys.stderr)
+        print(f"Extracting types from DWARF...", file=sys.stderr)
+        all_types = get_types_from_dwarf(binary_path)
+        print(f"Found {len(all_types)} total types", file=sys.stderr)
     
     # Export in requested format
     if output_format == 'json':
-        export_to_json(symbols, struct_types, output_file or 'symbols.json')
+        export_to_json(symbols, all_types, output_file or 'symbols.json')
     elif output_format == 'csv':
-        export_to_csv(symbols, struct_types, output_file or 'symbols.csv')
+        export_to_csv(symbols, all_types, output_file or 'symbols.csv')
     elif output_format == 'text':
-        export_to_text(symbols, struct_types, output_file or 'symbols.txt')
+        export_to_text(symbols, all_types, output_file or 'symbols.txt')
     else:
         print(f"Error: Unknown format '{output_format}'. Choose: json, csv, text")
         sys.exit(1)
