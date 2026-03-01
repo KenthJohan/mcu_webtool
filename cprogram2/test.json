@@ -1,0 +1,357 @@
+{
+  "symbols": [
+    {
+      "name": "Scrt1.o",
+      "address": "0x0000000000000000",
+      "type": "FILE",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": "SHN_ABS",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "__abi_tag",
+      "address": "0x000000000000038c",
+      "type": "OBJECT",
+      "binding": "STB_LOCAL",
+      "size": 32,
+      "section": ".note.ABI-tag",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "crtstuff.c",
+      "address": "0x0000000000000000",
+      "type": "FILE",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": "SHN_ABS",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "deregister_tm_clones",
+      "address": "0x0000000000001090",
+      "type": "FUNCTION",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": ".text",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "register_tm_clones",
+      "address": "0x00000000000010c0",
+      "type": "FUNCTION",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": ".text",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "__do_global_dtors_aux",
+      "address": "0x0000000000001100",
+      "type": "FUNCTION",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": ".text",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "completed.0",
+      "address": "0x0000000000004164",
+      "type": "OBJECT",
+      "binding": "STB_LOCAL",
+      "size": 1,
+      "section": ".bss",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "__do_global_dtors_aux_fini_array_entry",
+      "address": "0x0000000000003dc0",
+      "type": "OBJECT",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": ".fini_array",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "frame_dummy",
+      "address": "0x0000000000001140",
+      "type": "FUNCTION",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": ".text",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "__frame_dummy_init_array_entry",
+      "address": "0x0000000000003db8",
+      "type": "OBJECT",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": ".init_array",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "main.c",
+      "address": "0x0000000000000000",
+      "type": "FILE",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": "SHN_ABS",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "crtstuff.c",
+      "address": "0x0000000000000000",
+      "type": "FILE",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": "SHN_ABS",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "__FRAME_END__",
+      "address": "0x0000000000002108",
+      "type": "OBJECT",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": ".eh_frame",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "_DYNAMIC",
+      "address": "0x0000000000003dc8",
+      "type": "OBJECT",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": ".dynamic",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "__GNU_EH_FRAME_HDR",
+      "address": "0x0000000000002028",
+      "type": "NOTYPE",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": ".eh_frame_hdr",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "_GLOBAL_OFFSET_TABLE_",
+      "address": "0x0000000000003fb8",
+      "type": "OBJECT",
+      "binding": "STB_LOCAL",
+      "size": 0,
+      "section": ".got",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "data_start",
+      "address": "0x0000000000004000",
+      "type": "NOTYPE",
+      "binding": "STB_WEAK",
+      "size": 0,
+      "section": ".data",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "_edata",
+      "address": "0x0000000000004164",
+      "type": "NOTYPE",
+      "binding": "STB_GLOBAL",
+      "size": 0,
+      "section": ".data",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "_fini",
+      "address": "0x000000000000121c",
+      "type": "FUNCTION",
+      "binding": "STB_GLOBAL",
+      "size": 0,
+      "section": ".fini",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "__data_start",
+      "address": "0x0000000000004000",
+      "type": "NOTYPE",
+      "binding": "STB_GLOBAL",
+      "size": 0,
+      "section": ".data",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "__dso_handle",
+      "address": "0x0000000000004008",
+      "type": "OBJECT",
+      "binding": "STB_GLOBAL",
+      "size": 0,
+      "section": ".data",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "_IO_stdin_used",
+      "address": "0x0000000000002000",
+      "type": "OBJECT",
+      "binding": "STB_GLOBAL",
+      "size": 4,
+      "section": ".rodata",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "_end",
+      "address": "0x0000000000004168",
+      "type": "NOTYPE",
+      "binding": "STB_GLOBAL",
+      "size": 0,
+      "section": ".bss",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "_start",
+      "address": "0x0000000000001060",
+      "type": "FUNCTION",
+      "binding": "STB_GLOBAL",
+      "size": 38,
+      "section": ".text",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "__bss_start",
+      "address": "0x0000000000004164",
+      "type": "NOTYPE",
+      "binding": "STB_GLOBAL",
+      "size": 0,
+      "section": ".bss",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "main",
+      "address": "0x0000000000001149",
+      "type": "FUNCTION",
+      "binding": "STB_GLOBAL",
+      "size": 209,
+      "section": ".text",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "__TMC_END__",
+      "address": "0x0000000000004168",
+      "type": "OBJECT",
+      "binding": "STB_GLOBAL",
+      "size": 0,
+      "section": ".data",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    },
+    {
+      "name": "examples",
+      "address": "0x0000000000004020",
+      "type": "OBJECT",
+      "binding": "STB_GLOBAL",
+      "size": 324,
+      "section": ".data",
+      "dwarf_type": "struct Team[3]",
+      "array_count": 3,
+      "struct_type": 1
+    },
+    {
+      "name": "_init",
+      "address": "0x0000000000001000",
+      "type": "FUNCTION",
+      "binding": "STB_GLOBAL",
+      "size": 0,
+      "section": ".init",
+      "dwarf_type": null,
+      "array_count": null,
+      "struct_type": null
+    }
+  ],
+  "symbol_count": 29,
+  "struct_types": [
+    {
+      "name": "Person",
+      "size": 56,
+      "members": [
+        {
+          "name": "name",
+          "offset": 0
+        },
+        {
+          "name": "age",
+          "offset": 52
+        }
+      ],
+      "member_count": 2
+    },
+    {
+      "name": "Team",
+      "size": 108,
+      "members": [
+        {
+          "name": "team_name",
+          "offset": 0
+        },
+        {
+          "name": "leader",
+          "offset": 52
+        }
+      ],
+      "member_count": 2
+    }
+  ],
+  "struct_count": 2
+}

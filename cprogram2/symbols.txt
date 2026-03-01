@@ -1,0 +1,57 @@
+Symbol Information Export
+========================================================================================================================
+Name                                     Address      ELF Type   Data Type                     
+------------------------------------------------------------------------------------------------------------------------
+__libc_start_main                        0x00000000   FUNCTION   -                             
+_ITM_deregisterTMCloneTable              0x00000000   NOTYPE     -                             
+__gmon_start__                           0x00000000   NOTYPE     -                             
+_ITM_registerTMCloneTable                0x00000000   NOTYPE     -                             
+__cxa_finalize                           0x00000000   FUNCTION   -                             
+Scrt1.o                                  0x00000000   FILE       -                             
+__abi_tag                                0x0000038c   OBJECT     -                             
+crtstuff.c                               0x00000000   FILE       -                             
+deregister_tm_clones                     0x00001070   FUNCTION   -                             
+register_tm_clones                       0x000010a0   FUNCTION   -                             
+__do_global_dtors_aux                    0x000010e0   FUNCTION   -                             
+completed.0                              0x00004164   OBJECT     -                             
+__do_global_dtors_aux_fini_array_entry   0x00003df8   OBJECT     -                             
+frame_dummy                              0x00001120   FUNCTION   -                             
+__frame_dummy_init_array_entry           0x00003df0   OBJECT     -                             
+main.c                                   0x00000000   FILE       -                             
+crtstuff.c                               0x00000000   FILE       -                             
+__FRAME_END__                            0x000020c0   OBJECT     -                             
+_DYNAMIC                                 0x00003e00   OBJECT     -                             
+__GNU_EH_FRAME_HDR                       0x00002004   NOTYPE     -                             
+_GLOBAL_OFFSET_TABLE_                    0x00003fc0   OBJECT     -                             
+__libc_start_main@GLIBC_2.34             0x00000000   FUNCTION   -                             
+_ITM_deregisterTMCloneTable              0x00000000   NOTYPE     -                             
+data_start                               0x00004000   NOTYPE     -                             
+_edata                                   0x00004164   NOTYPE     -                             
+_fini                                    0x00001138   FUNCTION   -                             
+__data_start                             0x00004000   NOTYPE     -                             
+__gmon_start__                           0x00000000   NOTYPE     -                             
+__dso_handle                             0x00004008   OBJECT     -                             
+_IO_stdin_used                           0x00002000   OBJECT     -                             
+_end                                     0x00004168   NOTYPE     -                             
+_start                                   0x00001040   FUNCTION   -                             
+__bss_start                              0x00004164   NOTYPE     -                             
+main                                     0x00001129   FUNCTION   -                             
+__TMC_END__                              0x00004168   OBJECT     -                             
+_ITM_registerTMCloneTable                0x00000000   NOTYPE     -                             
+examples                                 0x00004020   OBJECT     struct Team[]                 
+__cxa_finalize@GLIBC_2.2.5               0x00000000   FUNCTION   -                             
+_init                                    0x00001000   FUNCTION   -                             
+
+
+Struct Type Definitions
+========================================================================================================================
+
+struct Person (size: 56 bytes)
+--------------------------------------------------------------------------------
+  +0000  name
+  +0052  age
+
+struct Team (size: 108 bytes)
+--------------------------------------------------------------------------------
+  +0000  team_name
+  +0052  leader
