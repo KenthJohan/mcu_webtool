@@ -32,7 +32,7 @@ function readCString(bytes, offset) {
 	return new TextDecoder().decode(bytes.slice(offset, end));
 }
 
-function parseBtf(arrayBuffer) {
+function btf_parse(arrayBuffer) {
 	const view = new DataView(arrayBuffer);
 	const bytes = new Uint8Array(arrayBuffer);
 
@@ -69,13 +69,6 @@ function parseBtf(arrayBuffer) {
 	let typeId = 1;
 
 	const getString = (off) => readCString(strings, off);
-	const getTypeName = (id) => {
-		if (id === 0) return "void";
-		const t = types[id - 1];
-		if (!t) return `<type:${id}>`;
-		const rawName = t.name || "";
-		return rawName ? `${rawName} (id:${id})` : `${(t.kindName || "type").toLowerCase()}#${id}`;
-	};
 
 	while (pos < typeEnd) {
 		if (pos + 12 > typeEnd) {
@@ -221,44 +214,6 @@ function parseBtf(arrayBuffer) {
 		typeId += 1;
 	}
 
-    console.log(types);
-
-	const lines = [];
-	for (const type of types) {
-		const headerName = type.name ? ` ${type.name}` : "";
-		lines.push(`[${type.id}] ${type.kindName}${headerName}`);
-
-		if (type.kindName === "STRUCT" || type.kindName === "UNION") {
-			lines.push(`  size: ${type.data.sizeBytes} bytes`);
-			for (const member of type.data.members || []) {
-				lines.push(`  - ${member.name || "<anon>"}: ${getTypeName(member.type)} @ byte ${member.offsetBytes}`);
-			}
-		} else if (type.kindName === "INT") {
-			lines.push(`  size: ${type.data.sizeBytes} bytes, bits: ${type.data.bitSize}, bit_offset: ${type.data.bitsOffset}`);
-		} else if (type.kindName === "ARRAY") {
-			lines.push(`  elem: ${getTypeName(type.data.elemType)}, index: ${getTypeName(type.data.indexType)}, count: ${type.data.nelems}`);
-		} else if (type.kindName === "FUNC_PROTO") {
-			lines.push(`  returns: ${getTypeName(type.data.returnType)}`);
-			for (const param of type.data.params || []) {
-				lines.push(`  - param ${param.name || "<anon>"}: ${getTypeName(param.type)}`);
-			}
-		} else if (type.kindName === "VAR") {
-			lines.push(`  type: ${getTypeName(type.data.type)}, linkage: ${type.data.linkage}`);
-		} else if (type.kindName === "DATASEC") {
-			lines.push(`  section size: ${type.data.sizeBytes}`);
-			for (const entry of type.data.vars || []) {
-				lines.push(`  - var: ${getTypeName(entry.type)} offset=${entry.offset} size=${entry.size}`);
-			}
-		} else if (type.kindName === "ENUM" || type.kindName === "ENUM64") {
-			for (const item of type.data.values || []) {
-				lines.push(`  - ${item.name}: ${item.value}`);
-			}
-		} else {
-			lines.push(`  raw: ${JSON.stringify(type.data)}`);
-		}
-		lines.push("");
-	}
-
 	return {
 		header: {
 			magic: `0x${magic.toString(16)}`,
@@ -270,66 +225,16 @@ function parseBtf(arrayBuffer) {
 			strOff,
 			strLen
 		},
-		types,
-		readableText: lines.join("\n")
+		types
 	};
 }
 
-function setStatus(message, isError = false) {
-	const statusEl = document.getElementById("status");
-	statusEl.textContent = message;
-	statusEl.className = isError ? "error" : "";
-}
 
-function renderResult(result) {
-	const summaryEl = document.getElementById("summary");
-	const outputEl = document.getElementById("output");
-
-	summaryEl.innerHTML = `
-		<strong>Header</strong><br>
-		magic=${result.header.magic}, version=${result.header.version}, flags=${result.header.flags}<br>
-		hdr_len=${result.header.hdrLen}, type_len=${result.header.typeLen}, str_len=${result.header.strLen}<br>
-		<strong>Types parsed:</strong> ${result.types.length}
-	`;
-
-	outputEl.textContent = result.readableText || "No types found.";
-}
-
-async function loadDefaultBtf() {
-	setStatus("Loading ./a.btf ...");
-	try {
-		const response = await fetch("./a.btf");
-		if (!response.ok) {
-			throw new Error(`HTTP ${response.status}: could not load ./a.btf`);
-		}
-		const buffer = await response.arrayBuffer();
-		const parsed = parseBtf(buffer);
-		renderResult(parsed);
-		setStatus(`Loaded ./a.btf successfully (${parsed.types.length} type records).`);
-	} catch (error) {
-		setStatus(String(error), true);
+async function btf_parse_fetch_file(url) {
+	const response = await fetch(url);
+	if (!response.ok) {
+		throw new Error(`Failed to fetch BTF file: ${response.statusText}`);
 	}
+	const arrayBuffer = await response.arrayBuffer();
+	return btf_parse(arrayBuffer);
 }
-
-async function loadFromFile(file) {
-	setStatus(`Loading ${file.name} ...`);
-	try {
-		const buffer = await file.arrayBuffer();
-		const parsed = parseBtf(buffer);
-		renderResult(parsed);
-		setStatus(`Loaded ${file.name} successfully (${parsed.types.length} type records).`);
-	} catch (error) {
-		setStatus(String(error), true);
-	}
-}
-
-document.getElementById("loadDefaultBtn").addEventListener("click", () => {
-	loadDefaultBtf();
-});
-
-document.getElementById("fileInput").addEventListener("change", (event) => {
-	const file = event.target.files && event.target.files[0];
-	if (file) {
-		loadFromFile(file);
-	}
-});
