@@ -40,7 +40,7 @@ function renderIcons() {
     noResults.style.display = 'none';
     
     entries.forEach(([name, path]) => {
-        const card = createIconCard(name, "../" + path);
+        const card = createIconCard(name, "/images/" + path);
         gridContainer.appendChild(card);
     });
 }
