@@ -1,0 +1,110 @@
+{
+  "timestamp": "2026-03-01T11:21:24Z",
+  "binary": "./a.out",
+  "symbols": {
+    "": {
+      "address": "0xU",
+      "type": "printf@GLIBC_2.2.5"
+    },
+    "__abi_tag": {
+      "address": "0x000000000000038c",
+      "type": "r"
+    },
+    "_init": {
+      "address": "0x0000000000001000",
+      "type": "T"
+    },
+    "_start": {
+      "address": "0x0000000000001060",
+      "type": "T"
+    },
+    "deregister_tm_clones": {
+      "address": "0x0000000000001090",
+      "type": "t"
+    },
+    "register_tm_clones": {
+      "address": "0x00000000000010c0",
+      "type": "t"
+    },
+    "__do_global_dtors_aux": {
+      "address": "0x0000000000001100",
+      "type": "t"
+    },
+    "frame_dummy": {
+      "address": "0x0000000000001140",
+      "type": "t"
+    },
+    "main": {
+      "address": "0x0000000000001149",
+      "type": "T"
+    },
+    "_fini": {
+      "address": "0x00000000000011c8",
+      "type": "T"
+    },
+    "_IO_stdin_used": {
+      "address": "0x0000000000002000",
+      "type": "R"
+    },
+    "__GNU_EH_FRAME_HDR": {
+      "address": "0x000000000000201c",
+      "type": "r"
+    },
+    "__FRAME_END__": {
+      "address": "0x00000000000020f8",
+      "type": "r"
+    },
+    "__frame_dummy_init_array_entry": {
+      "address": "0x0000000000003db8",
+      "type": "d"
+    },
+    "__do_global_dtors_aux_fini_array_entry": {
+      "address": "0x0000000000003dc0",
+      "type": "d"
+    },
+    "_DYNAMIC": {
+      "address": "0x0000000000003dc8",
+      "type": "d"
+    },
+    "_GLOBAL_OFFSET_TABLE_": {
+      "address": "0x0000000000003fb8",
+      "type": "d"
+    },
+    "__data_start": {
+      "address": "0x0000000000004000",
+      "type": "D"
+    },
+    "data_start": {
+      "address": "0x0000000000004000",
+      "type": "W"
+    },
+    "__dso_handle": {
+      "address": "0x0000000000004008",
+      "type": "D"
+    },
+    "examples": {
+      "address": "0x0000000000004020",
+      "type": "D"
+    },
+    "__bss_start": {
+      "address": "0x00000000000040c8",
+      "type": "B"
+    },
+    "completed.0": {
+      "address": "0x00000000000040c8",
+      "type": "b"
+    },
+    "_edata": {
+      "address": "0x00000000000040c8",
+      "type": "D"
+    },
+    "__TMC_END__": {
+      "address": "0x00000000000040c8",
+      "type": "D"
+    },
+    "_end": {
+      "address": "0x00000000000040d0",
+      "type": "B"
+    }
+  }
+}

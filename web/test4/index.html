@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>BTF Viewer</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			margin: 24px;
+			line-height: 1.4;
+			color: #222;
+		}
+		.controls {
+			display: flex;
+			gap: 10px;
+			align-items: center;
+			flex-wrap: wrap;
+			margin-bottom: 16px;
+		}
+		button {
+			padding: 8px 12px;
+			cursor: pointer;
+		}
+		#status {
+			margin: 10px 0 16px;
+			font-weight: 600;
+		}
+		#summary {
+			margin-bottom: 16px;
+			padding: 12px;
+			border: 1px solid #ddd;
+			border-radius: 6px;
+			background: #fafafa;
+		}
+		pre {
+			padding: 12px;
+			border: 1px solid #ddd;
+			border-radius: 6px;
+			overflow: auto;
+			background: #fcfcfc;
+		}
+		.error {
+			color: #b00020;
+		}
+	</style>
+</head>
+<body>
+	<h1>BTF Layout Viewer</h1>
+	<p>Reads and parses <code>a.btf</code> and prints a readable type layout.</p>
+
+	<div class="controls">
+		<button id="loadDefaultBtn">Load ./a.btf</button>
+		<label>
+			Or pick file:
+			<input id="fileInput" type="file" accept=".btf,.bin,application/octet-stream" />
+		</label>
+	</div>
+
+	<div id="status">Idle.</div>
+	<div id="summary">No data loaded yet.</div>
+	<pre id="output"></pre>
+
+	<script src="script.js"></script>
+</body>
+</html>

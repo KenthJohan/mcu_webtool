@@ -1,0 +1,25 @@
+{
+  "timestamp": "2026-03-01T11:24:12Z",
+  "binary": "./a.out",
+  "source": "main.c",
+  "structs": {
+    "Person": {
+      "name": "Person",
+      "fields": [
+        {
+          "name": "name",
+          "type": "char[50]",
+          "offset": 0,
+          "size": 50
+        },
+        {
+          "name": "age",
+          "type": "int",
+          "offset": 50,
+          "size": 4
+        }
+      ],
+      "size": 56
+    }
+  }
+}

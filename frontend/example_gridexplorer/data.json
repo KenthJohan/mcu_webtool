@@ -1,0 +1,14 @@
+[
+  {
+    "id" : 1,
+    "parent" : null,
+    "type" : "static_address",
+    "name" : "adc_buffer"
+  },
+  {
+    "id" : 2,
+    "parent" : 1,
+    "count" : 8,
+    "type" : "uint16_t"
+  }
+]
