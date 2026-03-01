@@ -14,14 +14,15 @@
     </div>
 
     <script src="script.js"></script>
+    <script src="GridExplorer.js"></script>
     <script>
         const grid = document.getElementById('test');
         const explorer = new GridExplorer(grid);
         explorer.add_row(0, 'colswap');
         let r = explorer.add_row(1, 'header');
-        explorer.set_cell(r, 0, 'name');
-        explorer.set_cell(r, 1, 'value');
-        explorer.set_cell(r, 2, 'address');
+        explorer.get_cell(r, 0).innerHTML = 'name';
+        explorer.get_cell(r, 1).innerHTML = 'value';
+        explorer.get_cell(r, 2).innerHTML = 'address';
         explorer.add_row(-1, 'x');
         explorer.add_row(-1, 'x');
         explorer.add_row(-1, 'x');
