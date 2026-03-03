@@ -451,7 +451,7 @@
           "name": "name",
           "offset": 0,
           "type": "char",
-          "count": 50,
+          "array_count": 50,
           "size": 50,
           "type_ref": 10,
           "is_primitive": true
@@ -477,7 +477,7 @@
           "name": "team_name",
           "offset": 0,
           "type": "char",
-          "count": 50,
+          "array_count": 50,
           "size": 50,
           "type_ref": 10,
           "is_primitive": true

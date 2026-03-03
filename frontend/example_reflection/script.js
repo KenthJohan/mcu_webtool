@@ -21,7 +21,7 @@ function expandSymbol(symbol, types, baseAddress = null, prefix = '') {
             name: prefix + symbol.name,
             address: address,
             type_ref: symbol.type_ref,
-            ...(symbol.array_count && { count: symbol.array_count }),
+            ...(symbol.array_count && { array_count: symbol.array_count }),
             ...(childrenCount > 0 && { children_count: childrenCount })
         });
         
@@ -33,7 +33,7 @@ function expandSymbol(symbol, types, baseAddress = null, prefix = '') {
                     name: member.name,
                     address: memberAddress,
                     type_ref: member.type_ref,
-                    array_count: member.count
+                    ...(member.array_count && { array_count: member.array_count })
                 };
                 
                 // Recursively expand nested structures
@@ -91,7 +91,7 @@ function expandAllSymbols(data) {
 function formatOutput(expanded) {
     return expanded.map(item => {
         const parts = [`name: "${item.name}"`, `address: ${item.address}`, `type_ref: ${item.type_ref}`];
-        if (item.count) parts.push(`count: ${item.count}`);
+        if (item.array_count) parts.push(`array_count: ${item.array_count}`);
         if (item.children_count) parts.push(`children_count: ${item.children_count}`);
         return `{${parts.join(', ')}}`;
     }).join(',\n');
@@ -119,7 +119,7 @@ function displayResults(expanded, data) {
         }
         
         const parts = [`name: "${item.name}"`, `address: ${item.address}`, `type_ref: ${item.type_ref}`];
-        if (item.count) parts.push(`count: ${item.count}`);
+        if (item.array_count) parts.push(`array_count: ${item.array_count}`);
         if (item.children_count) parts.push(`children_count: ${item.children_count}`);
         
         text += `  {${parts.join(', ')}}`;

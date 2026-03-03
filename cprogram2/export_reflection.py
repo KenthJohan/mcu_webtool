@@ -429,7 +429,7 @@ def get_types_from_dwarf(binary_path):
                         }
                         
                         if member_count is not None:
-                            member_entry['count'] = member_count
+                            member_entry['array_count'] = member_count
                         
                         if member_size is not None:
                             member_entry['size'] = member_size
