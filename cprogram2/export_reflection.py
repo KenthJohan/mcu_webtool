@@ -275,7 +275,7 @@ def get_symbols_from_elf(binary_path, var_types=None, include_undefined=False):
                     
                     symbols.append({
                         'name': symbol.name,
-                        'address': f'0x{symbol["st_value"]:016x}',
+                        'address': symbol['st_value'],
                         'type': kind_str,
                         'binding': symbol_type,
                         'size': symbol['st_size'],
@@ -285,6 +285,47 @@ def get_symbols_from_elf(binary_path, var_types=None, include_undefined=False):
                     })
     
     return symbols
+
+
+def unwrap_array_type(die, dwarfinfo, type_cache):
+    """
+    If DIE is an array type, returns (base_type_die, count).
+    Otherwise returns (die, None).
+    """
+    if die.tag != 'DW_TAG_array_type':
+        return die, None
+    
+    type_attr = die.attributes.get('DW_AT_type')
+    if not type_attr:
+        return die, None
+    
+    try:
+        base_die = dwarfinfo.get_DIE_from_refaddr(type_attr.value)
+    except:
+        return die, None
+    
+    # Extract array count
+    count = None
+    if die.has_children:
+        for child in die.iter_children():
+            if child.tag != 'DW_TAG_subrange_type':
+                continue
+            
+            count = get_int_attr(child, 'DW_AT_count')
+            if count is not None:
+                break
+            
+            upper = get_int_attr(child, 'DW_AT_upper_bound')
+            if upper is None:
+                break
+            
+            lower = get_int_attr(child, 'DW_AT_lower_bound')
+            if lower is None:
+                lower = 0
+            count = (upper - lower) + 1
+            break
+    
+    return base_die, count
 
 
 def get_types_from_dwarf(binary_path):
@@ -310,7 +351,6 @@ def get_types_from_dwarf(binary_path):
             'DW_TAG_pointer_type': 'pointer',
             'DW_TAG_reference_type': 'reference',
             'DW_TAG_rvalue_reference_type': 'rvalue_reference',
-            'DW_TAG_array_type': 'array',
             'DW_TAG_structure_type': 'struct',
             'DW_TAG_union_type': 'union',
             'DW_TAG_enumeration_type': 'enum',
@@ -322,6 +362,10 @@ def get_types_from_dwarf(binary_path):
         for CU in dwarfinfo.iter_CUs():
             for DIE in CU.iter_DIEs():
                 if DIE.tag not in tag_to_kind:
+                    continue
+                
+                # Skip DW_TAG_array_type - arrays are flattened into their member definitions
+                if DIE.tag == 'DW_TAG_array_type':
                     continue
 
                 kind = tag_to_kind[DIE.tag]
@@ -357,19 +401,40 @@ def get_types_from_dwarf(binary_path):
                             m_offset = 0
 
                         member_type = None
+                        member_count = None
+                        member_size = None
                         member_type_attr = child.attributes.get('DW_AT_type')
                         if member_type_attr:
                             try:
                                 member_type_die = dwarfinfo.get_DIE_from_refaddr(member_type_attr.value)
-                                member_type = resolve_type_name(member_type_die, dwarfinfo, type_cache)
+                                # Unwrap array types
+                                unwrapped_die, count = unwrap_array_type(member_type_die, dwarfinfo, type_cache)
+                                member_type = resolve_type_name(unwrapped_die, dwarfinfo, type_cache)
+                                member_count = count
+                                
+                                # Get the size of the base type
+                                element_size = get_int_attr(unwrapped_die, 'DW_AT_byte_size')
+                                if element_size is not None:
+                                    if member_count is not None:
+                                        member_size = element_size * member_count
+                                    else:
+                                        member_size = element_size
                             except:
                                 member_type = None
 
-                        members.append({
+                        member_entry = {
                             'name': m_name,
                             'offset': m_offset,
                             'type': member_type
-                        })
+                        }
+                        
+                        if member_count is not None:
+                            member_entry['count'] = member_count
+                        
+                        if member_size is not None:
+                            member_entry['size'] = member_size
+                        
+                        members.append(member_entry)
 
                 if members:
                     type_entry['members'] = members
@@ -401,11 +466,51 @@ def export_to_json(symbols=None, all_types=None, output_file=None):
     output = {}
 
     type_name_to_index = {}
+    type_name_to_entry = {}
     if all_types:
         for idx, type_entry in enumerate(all_types):
             type_name = type_entry.get('name')
             if type_name and type_name not in type_name_to_index:
                 type_name_to_index[type_name] = idx
+                type_name_to_entry[type_name] = type_entry
+
+    def is_primitive_type(type_name):
+        """Resolve typedef chain and check if ultimately a primitive type."""
+        if not isinstance(type_name, str):
+            return True  # Default to primitive if can't determine
+        
+        visited = set()
+        current_name = type_name
+        
+        while current_name and current_name not in visited:
+            visited.add(current_name)
+            type_entry = type_name_to_entry.get(current_name)
+            
+            if not type_entry:
+                # Type not found in our list, assume primitive
+                return True
+            
+            kind = type_entry.get('kind')
+            
+            # Primitive kinds
+            if kind in ('base', 'pointer', 'reference', 'rvalue_reference', 'const', 'volatile'):
+                return True
+            
+            # Non-primitive kinds
+            if kind in ('struct', 'union', 'enum', 'subroutine'):
+                return False
+            
+            # For typedef, follow the chain
+            if kind == 'typedef':
+                base_type = type_entry.get('base_type')
+                if base_type and base_type != current_name:
+                    current_name = base_type
+                    continue
+            
+            # Unknown or can't resolve further
+            return True
+        
+        return True
 
     def resolve_type_index(type_name):
         if not isinstance(type_name, str):
@@ -445,7 +550,10 @@ def export_to_json(symbols=None, all_types=None, output_file=None):
                 json_members = []
                 for member in members:
                     json_member = dict(member)
-                    json_member['type_ref'] = resolve_type_index(json_member.get('type'))
+                    member_type = json_member.get('type')
+                    # For members with count, type_ref points to base type
+                    json_member['type_ref'] = resolve_type_index(member_type)
+                    json_member['is_primitive'] = is_primitive_type(member_type)
                     json_members.append(json_member)
                 json_type_entry['members'] = json_members
 

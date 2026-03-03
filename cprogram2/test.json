@@ -2,7 +2,7 @@
   "symbols": [
     {
       "name": "Scrt1.o",
-      "address": "0x0000000000000000",
+      "address": 0,
       "type": "FILE",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -13,7 +13,7 @@
     },
     {
       "name": "__abi_tag",
-      "address": "0x000000000000038c",
+      "address": 908,
       "type": "OBJECT",
       "binding": "STB_LOCAL",
       "size": 32,
@@ -24,7 +24,7 @@
     },
     {
       "name": "crtstuff.c",
-      "address": "0x0000000000000000",
+      "address": 0,
       "type": "FILE",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -35,7 +35,7 @@
     },
     {
       "name": "deregister_tm_clones",
-      "address": "0x0000000000001090",
+      "address": 4240,
       "type": "FUNCTION",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -46,7 +46,7 @@
     },
     {
       "name": "register_tm_clones",
-      "address": "0x00000000000010c0",
+      "address": 4288,
       "type": "FUNCTION",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -57,7 +57,7 @@
     },
     {
       "name": "__do_global_dtors_aux",
-      "address": "0x0000000000001100",
+      "address": 4352,
       "type": "FUNCTION",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -68,7 +68,7 @@
     },
     {
       "name": "completed.0",
-      "address": "0x0000000000004164",
+      "address": 17092,
       "type": "OBJECT",
       "binding": "STB_LOCAL",
       "size": 1,
@@ -79,7 +79,7 @@
     },
     {
       "name": "__do_global_dtors_aux_fini_array_entry",
-      "address": "0x0000000000003dc0",
+      "address": 15808,
       "type": "OBJECT",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -90,7 +90,7 @@
     },
     {
       "name": "frame_dummy",
-      "address": "0x0000000000001140",
+      "address": 4416,
       "type": "FUNCTION",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -101,7 +101,7 @@
     },
     {
       "name": "__frame_dummy_init_array_entry",
-      "address": "0x0000000000003db8",
+      "address": 15800,
       "type": "OBJECT",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -112,7 +112,7 @@
     },
     {
       "name": "main.c",
-      "address": "0x0000000000000000",
+      "address": 0,
       "type": "FILE",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -123,7 +123,7 @@
     },
     {
       "name": "crtstuff.c",
-      "address": "0x0000000000000000",
+      "address": 0,
       "type": "FILE",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -134,7 +134,7 @@
     },
     {
       "name": "__FRAME_END__",
-      "address": "0x0000000000002108",
+      "address": 8456,
       "type": "OBJECT",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -145,7 +145,7 @@
     },
     {
       "name": "_DYNAMIC",
-      "address": "0x0000000000003dc8",
+      "address": 15816,
       "type": "OBJECT",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -156,7 +156,7 @@
     },
     {
       "name": "__GNU_EH_FRAME_HDR",
-      "address": "0x0000000000002028",
+      "address": 8232,
       "type": "NOTYPE",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -167,7 +167,7 @@
     },
     {
       "name": "_GLOBAL_OFFSET_TABLE_",
-      "address": "0x0000000000003fb8",
+      "address": 16312,
       "type": "OBJECT",
       "binding": "STB_LOCAL",
       "size": 0,
@@ -178,7 +178,7 @@
     },
     {
       "name": "data_start",
-      "address": "0x0000000000004000",
+      "address": 16384,
       "type": "NOTYPE",
       "binding": "STB_WEAK",
       "size": 0,
@@ -189,7 +189,7 @@
     },
     {
       "name": "_edata",
-      "address": "0x0000000000004164",
+      "address": 17092,
       "type": "NOTYPE",
       "binding": "STB_GLOBAL",
       "size": 0,
@@ -200,7 +200,7 @@
     },
     {
       "name": "_fini",
-      "address": "0x000000000000121c",
+      "address": 4820,
       "type": "FUNCTION",
       "binding": "STB_GLOBAL",
       "size": 0,
@@ -211,7 +211,7 @@
     },
     {
       "name": "__data_start",
-      "address": "0x0000000000004000",
+      "address": 16384,
       "type": "NOTYPE",
       "binding": "STB_GLOBAL",
       "size": 0,
@@ -222,7 +222,7 @@
     },
     {
       "name": "__dso_handle",
-      "address": "0x0000000000004008",
+      "address": 16392,
       "type": "OBJECT",
       "binding": "STB_GLOBAL",
       "size": 0,
@@ -233,7 +233,7 @@
     },
     {
       "name": "_IO_stdin_used",
-      "address": "0x0000000000002000",
+      "address": 8192,
       "type": "OBJECT",
       "binding": "STB_GLOBAL",
       "size": 4,
@@ -244,7 +244,7 @@
     },
     {
       "name": "_end",
-      "address": "0x0000000000004168",
+      "address": 17096,
       "type": "NOTYPE",
       "binding": "STB_GLOBAL",
       "size": 0,
@@ -255,7 +255,7 @@
     },
     {
       "name": "_start",
-      "address": "0x0000000000001060",
+      "address": 4192,
       "type": "FUNCTION",
       "binding": "STB_GLOBAL",
       "size": 38,
@@ -266,7 +266,7 @@
     },
     {
       "name": "__bss_start",
-      "address": "0x0000000000004164",
+      "address": 17092,
       "type": "NOTYPE",
       "binding": "STB_GLOBAL",
       "size": 0,
@@ -277,18 +277,29 @@
     },
     {
       "name": "main",
-      "address": "0x0000000000001149",
+      "address": 4425,
       "type": "FUNCTION",
       "binding": "STB_GLOBAL",
-      "size": 209,
+      "size": 392,
       "section": ".text",
       "dwarf_type": null,
       "array_count": null,
       "type_ref": null
     },
     {
+      "name": "examples2",
+      "address": 16768,
+      "type": "OBJECT",
+      "binding": "STB_GLOBAL",
+      "size": 324,
+      "section": ".data",
+      "dwarf_type": "struct Team[3]",
+      "array_count": 3,
+      "type_ref": 15
+    },
+    {
       "name": "__TMC_END__",
-      "address": "0x0000000000004168",
+      "address": 17096,
       "type": "OBJECT",
       "binding": "STB_GLOBAL",
       "size": 0,
@@ -299,7 +310,7 @@
     },
     {
       "name": "examples",
-      "address": "0x0000000000004020",
+      "address": 16416,
       "type": "OBJECT",
       "binding": "STB_GLOBAL",
       "size": 324,
@@ -310,7 +321,7 @@
     },
     {
       "name": "_init",
-      "address": "0x0000000000001000",
+      "address": 4096,
       "type": "FUNCTION",
       "binding": "STB_GLOBAL",
       "size": 0,
@@ -320,7 +331,7 @@
       "type_ref": null
     }
   ],
-  "symbol_count": 29,
+  "symbol_count": 30,
   "types": [
     {
       "name": "long unsigned int",
@@ -365,18 +376,27 @@
       "id": 5
     },
     {
+      "name": "__int32_t",
+      "kind": "typedef",
+      "size": null,
+      "tag": "DW_TAG_typedef",
+      "base_type": "int",
+      "id": 6,
+      "base_type_ref": 7
+    },
+    {
       "name": "int",
       "kind": "base",
       "size": 4,
       "tag": "DW_TAG_base_type",
-      "id": 6
+      "id": 7
     },
     {
       "name": "long int",
       "kind": "base",
       "size": 8,
       "tag": "DW_TAG_base_type",
-      "id": 7
+      "id": 8
     },
     {
       "name": "char *",
@@ -384,15 +404,15 @@
       "size": 8,
       "tag": "DW_TAG_pointer_type",
       "base_type": "char",
-      "id": 8,
-      "base_type_ref": 9
+      "id": 9,
+      "base_type_ref": 10
     },
     {
       "name": "char",
       "kind": "base",
       "size": 1,
       "tag": "DW_TAG_base_type",
-      "id": 9
+      "id": 10
     },
     {
       "name": "const char",
@@ -400,8 +420,8 @@
       "size": null,
       "tag": "DW_TAG_const_type",
       "base_type": "char",
-      "id": 10,
-      "base_type_ref": 9
+      "id": 11,
+      "base_type_ref": 10
     },
     {
       "name": "const char *",
@@ -409,8 +429,17 @@
       "size": 8,
       "tag": "DW_TAG_pointer_type",
       "base_type": "const char",
-      "id": 11,
-      "base_type_ref": 10
+      "id": 12,
+      "base_type_ref": 11
+    },
+    {
+      "name": "int32_t",
+      "kind": "typedef",
+      "size": null,
+      "tag": "DW_TAG_typedef",
+      "base_type": "__int32_t",
+      "id": 13,
+      "base_type_ref": 6
     },
     {
       "name": "struct Person",
@@ -421,27 +450,22 @@
         {
           "name": "name",
           "offset": 0,
-          "type": "char[50]",
-          "type_ref": 13
+          "type": "char",
+          "count": 50,
+          "size": 50,
+          "type_ref": 10,
+          "is_primitive": true
         },
         {
           "name": "age",
           "offset": 52,
-          "type": "int",
-          "type_ref": 6
+          "type": "int32_t",
+          "type_ref": 13,
+          "is_primitive": true
         }
       ],
       "member_count": 2,
-      "id": 12
-    },
-    {
-      "name": "char[50]",
-      "kind": "array",
-      "size": null,
-      "tag": "DW_TAG_array_type",
-      "base_type": "char",
-      "id": 13,
-      "base_type_ref": 9
+      "id": 14
     },
     {
       "name": "struct Team",
@@ -452,27 +476,23 @@
         {
           "name": "team_name",
           "offset": 0,
-          "type": "char[50]",
-          "type_ref": 13
+          "type": "char",
+          "count": 50,
+          "size": 50,
+          "type_ref": 10,
+          "is_primitive": true
         },
         {
           "name": "leader",
           "offset": 52,
           "type": "struct Person",
-          "type_ref": 12
+          "size": 56,
+          "type_ref": 14,
+          "is_primitive": false
         }
       ],
       "member_count": 2,
-      "id": 14
-    },
-    {
-      "name": "struct Team[3]",
-      "kind": "array",
-      "size": null,
-      "tag": "DW_TAG_array_type",
-      "base_type": "struct Team",
-      "id": 15,
-      "base_type_ref": 14
+      "id": 15
     },
     {
       "name": "char * *",
@@ -481,7 +501,7 @@
       "tag": "DW_TAG_pointer_type",
       "base_type": "char *",
       "id": 16,
-      "base_type_ref": 8
+      "base_type_ref": 9
     }
   ],
   "type_count": 17
